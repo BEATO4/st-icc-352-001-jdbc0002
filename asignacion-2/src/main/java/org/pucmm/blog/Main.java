@@ -2,9 +2,10 @@ package org.pucmm.blog;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+import org.pucmm.blog.encapsulaciones.*;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
-import io.javalin.rendering.template.JavalinThymeleaf;
+import io.javalin.rendering.template.JavalinThymeleaf; //motor de plantillas
 import java.util.*;
 import java.text.SimpleDateFormat;
 
@@ -51,6 +52,18 @@ public class Main {
         });
 
         //RUTAS
+        app.get("/", ctx -> {
+            Map<String, Object> modelo = new HashMap<>();
+
+            articulos.sort((a, b) -> b.getFecha().compareTo(a.getFecha()));
+
+            modelo.put("articulos", articulos);
+            modelo.put("usuario", ctx.sessionAttribute("usuario"));
+
+            ctx.render("/templates/index.html", modelo);
+        });
+
+        app.get("/login", ctx -> ctx.render("/templates/login.html"));
 
     }
 }
