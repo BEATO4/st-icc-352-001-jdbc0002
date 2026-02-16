@@ -1,5 +1,9 @@
 package org.pucmm.blog.encapsulaciones;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
 public class Articulo {
 
     private long id;

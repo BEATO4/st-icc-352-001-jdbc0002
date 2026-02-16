@@ -10,6 +10,10 @@ repositories {
     mavenCentral()
 }
 
+application {
+    // Reemplaza con tu paquete y clase principal
+    mainClass.set("\"org.pucmm.blog.Main\"")
+}
 
 dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
