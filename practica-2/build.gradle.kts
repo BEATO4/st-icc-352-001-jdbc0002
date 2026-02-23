@@ -11,7 +11,7 @@ repositories {
 }
 
 application {
-    mainClass.set("edu.pucmm.icc352.Main")
+    mainClass.set("org.pucmm.blog.Main")
 }
 
 dependencies {
