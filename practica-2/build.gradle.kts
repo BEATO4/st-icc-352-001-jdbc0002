@@ -11,8 +11,7 @@ repositories {
 }
 
 application {
-    // Reemplaza con tu paquete y clase principal
-    mainClass.set("\"org.pucmm.blog.Main\"")
+    mainClass.set("edu.pucmm.icc352.Main")
 }
 
 dependencies {
