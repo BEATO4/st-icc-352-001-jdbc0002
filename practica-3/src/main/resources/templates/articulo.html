@@ -2,18 +2,22 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title th:text="${articulo.titulo}">Artículo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${articulo.titulo}">Art&#237;culo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
     <div class="container">
-        <a class="navbar-brand" href="/">Blog PUCMM</a>
-        <div class="d-flex">
+        <a class="navbar-brand" href="/">Blog ICC-352</a>
+        <div class="d-flex align-items-center">
             <a th:if="${usuario == null}" href="/login" class="btn btn-outline-light btn-sm">Login</a>
-            <div th:if="${usuario != null}">
-                <span class="text-light me-2" th:text="${usuario.nombre}">Usuario</span>
+            <div th:if="${usuario != null}" class="d-flex align-items-center">
+                <span class="text-light me-3" th:text="'Hola, ' + ${usuario.nombre}">Usuario</span>
+                <a th:if="${usuario.administrator or usuario.autor}"
+                   href="/crear-articulo" class="btn btn-success btn-sm me-2">Crear Art&#237;culo</a>
                 <a href="/logout" class="btn btn-danger btn-sm">Salir</a>
             </div>
         </div>
@@ -25,40 +29,55 @@
         <div class="col-lg-8">
             <article>
                 <header class="mb-4">
-                    <h1 class="fw-bolder mb-1" th:text="${articulo.titulo}">Título del Artículo</h1>
+                    <h1 class="fw-bolder mb-1" th:text="${articulo.titulo}">T&#237;tulo del Art&#237;culo</h1>
                     <div class="text-muted fst-italic mb-2">
                         Posteado el <span th:text="${#dates.format(articulo.fecha, 'dd-MM-yyyy HH:mm')}">Fecha</span>
-                        por <span th:text="${articulo.autor.nombre}">Autor</span>
+                        por <strong th:text="${articulo.autor.nombre}">Autor</strong>
                     </div>
                     <span th:each="tag : ${articulo.listaEtiquetas}"
-                          class="badge bg-secondary text-decoration-none link-light me-1"
+                          class="badge bg-primary text-decoration-none me-1"
                           th:text="${tag.etiqueta}">Etiqueta</span>
                 </header>
 
                 <section class="mb-5">
-                    <p class="fs-5 mb-4" th:text="${articulo.cuerpo}">Cuerpo del artículo...</p>
+                    <p class="fs-5 mb-4" th:text="${articulo.cuerpo}">Cuerpo del art&#237;culo...</p>
                 </section>
             </article>
 
+            <!-- Secci&#243;n de comentarios -->
             <section class="mb-5">
-                <div class="card bg-light">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">Comentarios</h5>
+                    </div>
                     <div class="card-body">
 
+                        <!-- Formulario para comentar (solo usuarios logueados) -->
                         <div th:if="${usuario != null}" class="mb-4">
-                            <h5>Deja un comentario:</h5>
+                            <h6>Deja un comentario:</h6>
                             <form th:action="@{/articulo/{id}/comentario(id=${articulo.id})}" method="post">
-                                <textarea class="form-control mb-3" rows="3" name="comentario" placeholder="Escribe tu opinión..." required></textarea>
+                                <textarea class="form-control mb-3" rows="3" name="comentario"
+                                          placeholder="Escribe tu opini&#243;n..." required></textarea>
                                 <button type="submit" class="btn btn-primary">Enviar</button>
                             </form>
                         </div>
 
+                        <!-- Aviso para usuarios no logueados -->
                         <div th:if="${usuario == null}" class="alert alert-warning">
-                            Debes <a href="/login">iniciar sesión</a> para comentar.
+                            Debes <a href="/login">iniciar sesi&#243;n</a> para comentar.
                         </div>
 
+                        <hr th:if="${usuario != null and !#lists.isEmpty(articulo.listaComentarios)}">
+
+                        <!-- Lista de comentarios -->
                         <div th:each="comentario : ${articulo.listaComentarios}" class="d-flex mb-4 border-bottom pb-3">
                             <div class="flex-shrink-0">
-                                <img class="rounded-circle" src="https://dummyimage.com/50x50/ced4da/6c757d.jpg" alt="..." />
+                                <img th:if="${comentario.autor.fotoPerfilBase64 != null}"
+                                     th:src="${comentario.autor.fotoPerfilBase64}"
+                                     class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;" alt="avatar" />
+                                <img th:if="${comentario.autor.fotoPerfilBase64 == null}"
+                                     class="rounded-circle"
+                                     src="https://dummyimage.com/50x50/ced4da/6c757d.jpg" alt="avatar" />
                             </div>
                             <div class="ms-3">
                                 <div class="fw-bold" th:text="${comentario.autor.nombre}">Nombre Comentarista</div>
@@ -67,7 +86,7 @@
                         </div>
 
                         <div th:if="${#lists.isEmpty(articulo.listaComentarios)}" class="text-muted fst-italic">
-                            No hay comentarios aún. ¡Sé el primero!
+                            No hay comentarios a&#250;n. &#161;S&#233; el primero!
                         </div>
 
                     </div>
@@ -76,12 +95,16 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="card mb-4">
-                <div class="card-header">Acciones</div>
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">Acciones</div>
                 <div class="card-body">
-                    <a href="/" class="btn btn-secondary w-100">Volver al Inicio</a>
+                    <a href="/" class="btn btn-secondary w-100">&#8592; Volver al Inicio</a>
                     <div th:if="${usuario != null and (usuario.administrator or usuario.autor)}" class="mt-2">
-                        <button class="btn btn-danger w-100 disabled">Borrar Artículo (Demo)</button>
+                        <a th:href="@{/articulo/{id}/eliminar(id=${articulo.id})}"
+                           class="btn btn-danger w-100"
+                           onclick="return confirm('&#191;Est&#225;s seguro de eliminar este art&#237;culo?');">
+                            Borrar Art&#237;culo
+                        </a>
                     </div>
                 </div>
             </div>
@@ -89,5 +112,12 @@
     </div>
 </div>
 
+<footer class="bg-dark text-white text-center py-3 mt-auto">
+    <small>&copy; 2024 ICC-352 &mdash; Blog PUCMM</small>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
 </body>
 </html>

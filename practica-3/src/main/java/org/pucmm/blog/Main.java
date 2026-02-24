@@ -37,8 +37,6 @@ public class Main {
         emf = Persistence.createEntityManagerFactory("BlogPU");
         System.out.println("Conexión a BD establecida.");
 
-        emf = Persistence.createEntityManagerFactory("BlogPU");
-        System.out.println("Conexión a BD establecida.");
 
         org.pucmm.blog.servicios.AuditoriaServices.crearTablaAuditoria();
 
@@ -136,7 +134,14 @@ public class Main {
             ctx.render("/templates/index.html", modelo);
         });
 
-        app.get("/login", ctx -> ctx.render("/templates/login.html"));
+        app.get("/login", ctx -> {
+            Map<String, Object> modelo = new HashMap<>();
+            String errorParam = ctx.queryParam("error");
+            if (errorParam != null) {
+                modelo.put("error", true);
+            }
+            ctx.render("/templates/login.html", modelo);
+        });
 
         // Procesar el Login
         app.post("/login", ctx -> {
@@ -158,7 +163,7 @@ public class Main {
                 }
                 ctx.redirect("/");
             } else {
-                ctx.redirect("/login"); // Credenciales incorrectas
+                ctx.redirect("/login?error");  // Credenciales incorrectas
             }
         });
 
@@ -167,6 +172,11 @@ public class Main {
             ctx.req().getSession().invalidate(); // Destruye la sesión
             ctx.removeCookie("usuario_recordado"); // Destruye la cookie de Jasypt
             ctx.redirect("/");
+        });
+
+        // Mostrar formulario de creación de usuario (solo admin)
+        app.get("/admin/crear-usuario", ctx -> {
+            ctx.render("/templates/crear_usuario.html", new HashMap<>());
         });
 
         // Procesar la creación de un nuevo usuario

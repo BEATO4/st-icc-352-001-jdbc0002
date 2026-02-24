@@ -1,67 +1,92 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
   <title>Blog PUCMM</title>
 </head>
-<body>
-<nav class="navbar navbar-light bg-light">
+<body class="d-flex flex-column min-vh-100">
+
+<!-- Navbar oscuro consistente -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container">
-    <span class="navbar-brand">Blog ICC-352</span>
+    <a class="navbar-brand" href="/">Blog ICC-352</a>
     <div class="d-flex align-items-center">
 
-      <span th:if="${usuario != null}" class="d-inline-flex align-items-center me-3">
+      <span th:if="${usuario != null}" class="d-inline-flex align-items-center me-3 text-light">
         <img th:if="${usuario.fotoPerfilBase64 != null}"
              th:src="${usuario.fotoPerfilBase64}"
              alt="Perfil" class="rounded-circle me-2" style="width: 35px; height: 35px; object-fit: cover;">
         <span th:text="'Hola, ' + ${usuario.nombre}"></span>
       </span>
 
-      <a th:if="${usuario == null}" href="/login" class="btn btn-primary">Login</a>
-      <a th:if="${usuario != null}" href="/crear-articulo" class="btn btn-success me-2">Crear Artículo</a>
-      <a th:if="${usuario != null}" href="/logout" class="btn btn-danger">Salir</a>
+      <a th:if="${usuario == null}" href="/login" class="btn btn-outline-light btn-sm">Login</a>
+
+      <a th:if="${usuario != null and (usuario.administrator or usuario.autor)}"
+         href="/crear-articulo" class="btn btn-success btn-sm me-2">Crear Art&#237;culo</a>
+
+      <a th:if="${usuario != null and usuario.administrator}"
+         href="/admin/crear-usuario" class="btn btn-warning btn-sm me-2">Crear Usuario</a>
+
+      <a th:if="${usuario != null}" href="/logout" class="btn btn-danger btn-sm">Salir</a>
     </div>
   </div>
 </nav>
 
 <div class="container mt-4">
+
+  <!-- Mensaje si no hay art&#237;culos -->
+  <div th:if="${#lists.isEmpty(articulos)}" class="alert alert-info text-center">
+    No hay art&#237;culos publicados a&#250;n. &#161;S&#233; el primero en escribir uno!
+  </div>
+
   <div class="row">
     <div class="col-md-8">
 
-      <div th:each="art : ${articulos}" class="card mb-4">
+      <div th:each="art : ${articulos}" class="card mb-4 shadow-sm">
         <div class="card-body">
           <h2 class="card-title" th:text="${art.titulo}">Titulo</h2>
-          <p class="card-text" th:text="${art.resumen}">Resumen...</p>
-          <a th:href="@{/articulo/{id}(id=${art.id})}" class="btn btn-primary">Leer más &rarr;</a>
+          <p class="card-text text-muted" th:text="${art.resumen}">Resumen...</p>
+          <a th:href="@{/articulo/{id}(id=${art.id})}" class="btn btn-primary">Leer m&#225;s &rarr;</a>
         </div>
         <div class="card-footer text-muted">
-          Posteado el <span th:text="${art.fecha}"></span> por <span th:text="${art.autor.username}"></span>
-          <a th:each="tag : ${art.listaEtiquetas}"
-             th:href="@{/(etiqueta=${tag.etiqueta})}"
-             th:text="${tag.etiqueta}"
-             class="badge bg-primary text-decoration-none me-1"></a>
+          Posteado el <span th:text="${art.fecha}"></span> por
+          <strong th:text="${art.autor.username}"></strong>
+          <span class="ms-2">
+            <a th:each="tag : ${art.listaEtiquetas}"
+               th:href="@{/(etiqueta=${tag.etiqueta})}"
+               th:text="${tag.etiqueta}"
+               class="badge bg-primary text-decoration-none me-1"></a>
+          </span>
         </div>
       </div>
 
+      <!-- Paginaci&#243;n -->
       <div th:if="${etiquetaFiltro == null}" class="d-flex justify-content-between mt-4 mb-4">
-        <a th:if="${paginaActual > 1}" th:href="@{/(pagina=${paginaActual - 1})}" class="btn btn-outline-primary">Anterior</a>
-        <span th:unless="${paginaActual > 1}" class="btn btn-outline-secondary disabled">Anterior</span>
+        <a th:if="${paginaActual > 1}" th:href="@{/(pagina=${paginaActual - 1})}"
+           class="btn btn-outline-primary">&laquo; Anterior</a>
+        <span th:unless="${paginaActual > 1}" class="btn btn-outline-secondary disabled">&laquo; Anterior</span>
 
-        <span class="align-self-center" th:text="'Página ' + ${paginaActual} + ' de ' + ${totalPaginas}"></span>
+        <span class="align-self-center"
+              th:text="'P&#225;gina ' + ${paginaActual} + ' de ' + ${totalPaginas}"></span>
 
-        <a th:if="${paginaActual < totalPaginas}" th:href="@{/(pagina=${paginaActual + 1})}" class="btn btn-outline-primary">Siguiente</a>
-        <span th:unless="${paginaActual < totalPaginas}" class="btn btn-outline-secondary disabled">Siguiente</span>
+        <a th:if="${paginaActual < totalPaginas}" th:href="@{/(pagina=${paginaActual + 1})}"
+           class="btn btn-outline-primary">Siguiente &raquo;</a>
+        <span th:unless="${paginaActual < totalPaginas}" class="btn btn-outline-secondary disabled">Siguiente &raquo;</span>
       </div>
 
+      <!-- Filtro por etiqueta -->
       <div th:if="${etiquetaFiltro != null}" class="mt-4 mb-4 text-center">
-        <h5 th:text="'Filtrando por etiqueta: ' + ${etiquetaFiltro}"></h5>
-        <a href="/" class="btn btn-primary">Ver todos los artículos</a>
+        <h5>Filtrando por etiqueta: <span class="badge bg-primary" th:text="${etiquetaFiltro}"></span></h5>
+        <a href="/" class="btn btn-outline-primary mt-2">Ver todos los art&#237;culos</a>
       </div>
 
     </div>
     <div class="col-md-4">
-      <div class="card my-4">
-        <h5 class="card-header">Etiquetas</h5>
+      <div class="card shadow-sm my-4">
+        <h5 class="card-header bg-dark text-white">Etiquetas</h5>
         <div class="card-body">
           <p class="text-muted">Selecciona una etiqueta en cualquier post para filtrar.</p>
         </div>
@@ -69,6 +94,13 @@
     </div>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+
+<footer class="bg-dark text-white text-center py-3 mt-auto">
+  <small>&copy; 2026 ICC-352 &mdash; Blog PUCMM</small>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
 </body>
 </html>
