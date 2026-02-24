@@ -24,7 +24,7 @@
                     <h4 class="mb-0">Registrar Nuevo Usuario</h4>
                 </div>
                 <div class="card-body">
-                    <form action="/admin/crear-usuario" method="post">
+                    <form action="/admin/crear-usuario" method="post" enctype="multipart/form-data">
                         <div class="mb-3">
                             <label class="form-label">Username</label>
                             <input type="text" name="username" class="form-control" required>
@@ -36,6 +36,11 @@
                         <div class="mb-3">
                             <label class="form-label">Contraseña</label>
                             <input type="password" name="password" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="fotoPerfil" class="form-label">Foto de Perfil</label>
+                            <input type="file" class="form-control" id="fotoPerfil" name="fotoPerfil" accept="image/*">
                         </div>
 
                         <div class="mb-3">
@@ -54,6 +59,7 @@
                             <button type="submit" class="btn btn-success">Crear Usuario</button>
                             <a href="/" class="btn btn-secondary">Cancelar</a>
                         </div>
+
                     </form>
                 </div>
             </div>

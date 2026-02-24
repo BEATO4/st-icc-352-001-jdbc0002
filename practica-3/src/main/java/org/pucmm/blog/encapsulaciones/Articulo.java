@@ -27,7 +27,7 @@ public class Articulo implements Serializable {
     @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comentario> listaComentarios;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<Etiqueta> listaEtiquetas;
 
     // Constructor vacío requerido por JPA
