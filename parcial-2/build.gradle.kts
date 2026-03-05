@@ -26,6 +26,6 @@ dependencies {
 
 tasks.jar {
     manifest {
-        attributes["Main-Class"] = "org.example.Main"
+        attributes["Main-Class"] = "org.pucmm.eventos.Main"
     }
 }
