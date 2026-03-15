@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EventPass — Escanear QR</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+  <link rel="stylesheet" href="css/main.css"/>
+  <!-- jsQR: lightweight pure-JS QR decoder (~47KB) -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+</head>
+<body style="background:var(--bg-base)">
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    if (!requireAuth()) throw '';
+    if (!Auth.isOrganizer()) { window.location.href = '/dashboard.html'; throw ''; }
+    buildLayout('Escanear QR', 'Registra asistencia validando códigos QR');
+  </script>
+
+  <script>
+  const root = document.getElementById('page-root');
+
+  root.innerHTML = `
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2>Validación de Acceso</h2>
+        <p>Escanea con la cámara o ingresa el token manualmente</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--text-muted)">Validaciones hoy</div>
+          <div style="font-size:28px;font-weight:800;color:var(--accent);line-height:1" id="scan-counter">0</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="clearLog()">
+          <i class="bi bi-trash"></i> Limpiar log
+        </button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:420px 1fr;gap:20px;align-items:start" id="scan-grid">
+
+      <!-- LEFT COLUMN -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <!-- Camera card -->
+        <div class="card-ep">
+          <div class="card-header-ep">
+            <span class="title"><i class="bi bi-camera-video"></i> Cámara</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="cam-status" style="font-size:11px;padding:2px 10px;border-radius:99px;
+                                           background:var(--bg-raised);color:var(--text-muted)">
+                Inactiva
+              </span>
+              <span id="fps-badge" style="display:none;font-size:10px;color:var(--text-muted);font-family:monospace">0 fps</span>
+            </div>
+          </div>
+          <div class="card-body-ep" style="padding:0">
+
+            <!-- Viewport -->
+            <div class="qr-viewport" id="qr-viewport" style="max-width:420px;border-radius:0;border:none">
+              <!-- Idle state -->
+              <div class="qr-placeholder" id="qr-idle">
+                <i class="bi bi-qr-code-scan" style="animation:pulse 2s ease infinite"></i>
+                <p>Presiona <strong>Iniciar</strong> para activar la cámara</p>
+              </div>
+              <!-- Video feed -->
+              <video id="qr-video" style="display:none;width:100%;height:100%;object-fit:cover" playsinline autoplay muted></video>
+              <!-- Overlay canvas (for drawing detected QR outline) -->
+              <canvas id="qr-canvas-overlay" style="display:none;position:absolute;inset:0;width:100%;height:100%;pointer-events:none"></canvas>
+              <!-- Scanning animation overlay -->
+              <div class="scan-overlay" id="qr-scan-overlay" style="display:none">
+                <div class="scan-frame"><span></span></div>
+                <div class="scan-line"></div>
+              </div>
+              <!-- Processing canvas (hidden, used for pixel analysis) -->
+              <canvas id="qr-canvas-hidden" style="display:none"></canvas>
+            </div>
+
+            <!-- Controls -->
+            <div style="padding:14px 16px;display:flex;gap:8px;border-top:1px solid var(--border)">
+              <button class="btn btn-primary" id="btn-cam-start" style="flex:1" onclick="startCamera()">
+                <i class="bi bi-camera"></i> Iniciar Cámara
+              </button>
+              <button class="btn btn-secondary" id="btn-cam-stop" style="display:none;flex:1" onclick="stopCamera()">
+                <i class="bi bi-stop-circle"></i> Detener
+              </button>
+              <button class="btn btn-ghost btn-icon" id="btn-cam-flip" style="display:none" onclick="flipCamera()" title="Cambiar cámara">
+                <i class="bi bi-arrow-repeat"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual input card -->
+        <div class="card-ep">
+          <div class="card-header-ep">
+            <span class="title"><i class="bi bi-keyboard"></i> Ingreso Manual</span>
+          </div>
+          <div class="card-body-ep">
+            <form id="form-manual" novalidate>
+              <div class="form-group">
+                <label class="form-label" for="qr-manual-input">
+                  Token QR <span class="req">*</span>
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-qr-code"></i></span>
+                  <input type="text" class="form-control" id="qr-manual-input"
+                         placeholder="eventId:userId:uuid ó token manual..."
+                         style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.3px"
+                         autocomplete="off" autocorrect="off" spellcheck="false"
+                         required minlength="6"/>
+                  <button type="button" class="btn btn-ghost"
+                          style="border:1px solid var(--border);border-left:none;border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:0 12px"
+                          onclick="document.getElementById('qr-manual-input').value='';document.getElementById('qr-manual-input').focus()">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+                <div class="invalid-feedback">El token debe tener al menos 6 caracteres.</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:5px">
+                  Formato esperado: <span style="font-family:monospace;font-size:10px;opacity:0.8">eventId:userId:uuid</span>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block" id="btn-manual-submit">
+                <i class="bi bi-shield-check"></i> Validar Token
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </div><!-- /left -->
+
+      <!-- RIGHT COLUMN -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <!-- Result display -->
+        <div class="card-ep">
+          <div class="card-header-ep">
+            <span class="title"><i class="bi bi-shield"></i> Resultado</span>
+            <span id="result-timestamp" style="font-size:11px;color:var(--text-muted);font-family:monospace"></span>
+          </div>
+          <div class="card-body-ep" id="result-area">
+            <div class="empty-state" style="padding:32px">
+              <i class="bi bi-shield-slash"></i>
+              <h4>Sin validar</h4>
+              <p>Escanea o ingresa un código para verificar el acceso</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Validation log -->
+        <div class="card-ep">
+          <div class="card-header-ep">
+            <span class="title"><i class="bi bi-journal-text"></i> Registro de Sesión</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-size:10px;padding:2px 8px;border-radius:99px;
+                           background:rgba(16,185,129,0.15);color:var(--accent);font-weight:700">LIVE</span>
+              <span id="log-count" style="font-size:11px;color:var(--text-muted)">0 registros</span>
+            </div>
+          </div>
+          <div class="card-body-ep" style="padding:0;max-height:460px;overflow-y:auto" id="scan-log">
+            <div class="empty-state" style="padding:24px">
+              <i class="bi bi-clipboard-x" style="font-size:28px"></i>
+              <p style="font-size:12px">Sin actividad en esta sesión</p>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /right -->
+    </div><!-- /grid -->
+  `;
+
+  /* ─ Responsive grid ─ */
+  const scanGrid = document.getElementById('scan-grid');
+  const fixGrid = () => { scanGrid.style.gridTemplateColumns = window.innerWidth < 900 ? '1fr' : '420px 1fr'; };
+  window.addEventListener('resize', fixGrid);
+  fixGrid();
+
+  /* ─ State ─ */
+  let scanCount   = 0;
+  const scanLog   = [];
+  let stream      = null;
+  let scanRafId   = null;
+  let lastToken   = null;       // debounce: ignore same token for 3s
+  let lastScanTs  = 0;
+  let facingMode  = 'environment';
+  let fpsInterval = null;
+  let frameCount  = 0;
+  let isValidating = false;     // prevent concurrent requests
+
+  /* ─ Manual form submit ─ */
+  document.getElementById('form-manual').addEventListener('submit', async e => {
+    e.preventDefault();
+    const input = document.getElementById('qr-manual-input');
+    if (!validateField(input, Rules.minLen(6))) return;
+    await processToken(input.value.trim(), 'manual');
+    input.value = '';
+    input.focus();
+  });
+
+  /* ─ Process token (shared by camera and manual) ─ */
+  async function processToken(token, source = 'manual') {
+    if (isValidating) return;
+    isValidating = true;
+
+    const btn = document.getElementById('btn-manual-submit');
+    if (source === 'manual') setLoading(btn, true);
+    showValidating();
+
+    try {
+      const res = await api.scanQR(token);
+      showResult('success', res, token);
+      addLog('success', token, res);
+      scanCount++;
+      document.getElementById('scan-counter').textContent = scanCount;
+    } catch(err) {
+      showResult('error', null, token, err.message);
+      addLog('error', token, null, err.message);
+    } finally {
+      isValidating = false;
+      if (source === 'manual') setLoading(btn, false);
+    }
+  }
+
+  /* ─ Result UI ─ */
+  function showValidating() {
+    document.getElementById('result-area').innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:32px">
+        <div class="spinner spinner-lg"></div>
+        <div style="font-size:14px;color:var(--text-secondary)">Verificando token con el servidor...</div>
+      </div>`;
+    document.getElementById('result-timestamp').textContent = '';
+  }
+
+  function showResult(type, data, token, errMsg = '') {
+    const ts = new Date();
+    document.getElementById('result-timestamp').textContent = ts.toLocaleTimeString('es-DO');
+
+    if (type === 'success') {
+      document.getElementById('result-area').innerHTML = `
+        <div class="result-card success">
+          <i class="bi bi-check-circle-fill result-icon"></i>
+          <div class="result-title">¡Acceso Permitido!</div>
+          <div class="result-detail">
+            <div style="font-size:18px;font-weight:700;color:var(--text-primary);margin-bottom:6px">
+              ${data.attendee}
+            </div>
+            <div style="font-size:13px;margin-bottom:10px">Asistencia registrada exitosamente</div>
+            <div style="font-size:11px;color:var(--text-muted);font-family:monospace;
+                        background:var(--bg-raised);padding:6px 10px;border-radius:6px;
+                        overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              ${token.slice(0,40)}${token.length>40?'…':''}
+            </div>
+          </div>
+        </div>`;
+    } else {
+      const isAlreadyScanned = errMsg.toLowerCase().includes('ya registrada') || errMsg.includes('409');
+      document.getElementById('result-area').innerHTML = `
+        <div class="result-card error">
+          <i class="bi bi-${isAlreadyScanned ? 'exclamation-circle-fill' : 'x-circle-fill'} result-icon"></i>
+          <div class="result-title">${isAlreadyScanned ? 'Ya Escaneado' : 'Acceso Denegado'}</div>
+          <div class="result-detail">
+            <div style="margin-bottom:10px">${errMsg || 'Token inválido o no encontrado'}</div>
+            <div style="font-size:11px;color:var(--text-muted);font-family:monospace;
+                        background:rgba(239,68,68,0.08);padding:6px 10px;border-radius:6px;
+                        overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              ${token.slice(0,40)}${token.length>40?'…':''}
+            </div>
+          </div>
+        </div>`;
+    }
+  }
+
+  /* ─ Log ─ */
+  function addLog(type, token, data, err) {
+    scanLog.unshift({ type, token, data, err, time: new Date() });
+    renderLog();
+  }
+
+  function renderLog() {
+    document.getElementById('log-count').textContent = `${scanLog.length} registro${scanLog.length!==1?'s':''}`;
+    const el = document.getElementById('scan-log');
+    if (!scanLog.length) {
+      el.innerHTML = `<div class="empty-state" style="padding:24px">
+        <i class="bi bi-clipboard-x" style="font-size:28px"></i><p style="font-size:12px">Sin actividad</p>
+      </div>`;
+      return;
+    }
+    el.innerHTML = scanLog.map(entry => `
+      <div style="display:flex;gap:12px;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,0.04);
+                  transition:background 0.15s;cursor:default"
+           onmouseover="this.style.background='var(--bg-raised)'" onmouseout="this.style.background=''">
+        <div style="width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+                    justify-content:center;font-size:14px;
+                    background:${entry.type==='success'?'rgba(16,185,129,0.15)':'rgba(239,68,68,0.12)'};
+                    color:${entry.type==='success'?'var(--accent)':'var(--danger)'}">
+          <i class="bi bi-${entry.type==='success'?'check-circle-fill':'x-circle-fill'}"></i>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline">
+            <span style="font-size:13px;font-weight:600;color:${entry.type==='success'?'var(--accent)':'var(--danger)'}">
+              ${entry.type==='success'?'✓ Acceso permitido':'✗ Acceso denegado'}
+            </span>
+            <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;font-family:monospace">
+              ${entry.time.toLocaleTimeString('es-DO')}
+            </span>
+          </div>
+          ${entry.data?.attendee ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:1px">${entry.data.attendee}</div>` : ''}
+          ${entry.err ? `<div style="font-size:11px;color:var(--text-muted);margin-top:1px">${entry.err}</div>` : ''}
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;font-family:monospace;
+                      overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            ${entry.token.slice(0,36)}${entry.token.length>36?'…':''}
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function clearLog() {
+    scanLog.length = 0;
+    renderLog();
+    showToast('Registro de sesión limpiado', 'info');
+  }
+
+  /* ─ Camera / jsQR ─ */
+  async function startCamera() {
+    try {
+      if (stream) stopCamera();
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      const video = document.getElementById('qr-video');
+      video.srcObject = stream;
+      await video.play();
+
+      video.style.display = 'block';
+      document.getElementById('qr-idle').style.display = 'none';
+      document.getElementById('qr-scan-overlay').style.display = 'block';
+      document.getElementById('btn-cam-start').style.display = 'none';
+      document.getElementById('btn-cam-stop').style.display  = '';
+      document.getElementById('btn-cam-flip').style.display  = '';
+      setCamStatus('Escaneando…', 'var(--accent)');
+
+      /* FPS counter */
+      frameCount = 0;
+      fpsInterval = setInterval(() => {
+        const badge = document.getElementById('fps-badge');
+        badge.style.display = '';
+        badge.textContent = `${frameCount} fps`;
+        frameCount = 0;
+      }, 1000);
+
+      /* Start decode loop */
+      decodeLoop();
+
+    } catch(err) {
+      const msg = err.name === 'NotAllowedError'
+        ? 'Permiso de cámara denegado. Habilítalo en la configuración del navegador.'
+        : 'No se pudo acceder a la cámara: ' + err.message;
+      showToast(msg, 'error', 'Error de cámara', 7000);
+    }
+  }
+
+  function stopCamera() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    if (scanRafId) { cancelAnimationFrame(scanRafId); scanRafId = null; }
+    if (fpsInterval) { clearInterval(fpsInterval); fpsInterval = null; }
+
+    const video = document.getElementById('qr-video');
+    video.style.display = 'none';
+    video.srcObject = null;
+    document.getElementById('qr-idle').style.display = '';
+    document.getElementById('qr-scan-overlay').style.display = 'none';
+    document.getElementById('qr-canvas-overlay').style.display = 'none';
+    document.getElementById('btn-cam-start').style.display = '';
+    document.getElementById('btn-cam-stop').style.display  = 'none';
+    document.getElementById('btn-cam-flip').style.display  = 'none';
+    document.getElementById('fps-badge').style.display = 'none';
+    setCamStatus('Inactiva', 'var(--text-muted)');
+  }
+
+  async function flipCamera() {
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    await startCamera();
+    showToast('Cámara alternada', 'info');
+  }
+
+  function setCamStatus(text, color) {
+    const el = document.getElementById('cam-status');
+    el.textContent = text;
+    el.style.color = color;
+    el.style.background = color === 'var(--accent)' ? 'rgba(16,185,129,0.15)' : 'var(--bg-raised)';
+  }
+
+  /* ─ jsQR decode loop ─ */
+  function decodeLoop() {
+    const video  = document.getElementById('qr-video');
+    const canvas = document.getElementById('qr-canvas-hidden');
+    const ctx    = canvas.getContext('2d');
+
+    function tick() {
+      if (!stream) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        frameCount++;
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        try {
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const qrCode    = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'dontInvert'
+          });
+
+          if (qrCode) {
+            const token = qrCode.data;
+            const now   = Date.now();
+            /* Debounce: skip same token within 3 seconds */
+            if (token !== lastToken || now - lastScanTs > 3000) {
+              lastToken  = token;
+              lastScanTs = now;
+              setCamStatus('QR detectado!', 'var(--warning)');
+              drawQROutline(qrCode.location, canvas.width, canvas.height);
+              if (!isValidating) processToken(token, 'camera');
+            }
+          } else {
+            setCamStatus('Escaneando…', 'var(--accent)');
+            clearQROverlay();
+          }
+        } catch {}
+      }
+      scanRafId = requestAnimationFrame(tick);
+    }
+
+    scanRafId = requestAnimationFrame(tick);
+  }
+
+  /* ─ Draw QR bounding box ─ */
+  function drawQROutline(loc, vw, vh) {
+    const overlay = document.getElementById('qr-canvas-overlay');
+    overlay.style.display = 'block';
+    overlay.width  = vw;
+    overlay.height = vh;
+    const ctx = overlay.getContext('2d');
+    ctx.clearRect(0, 0, vw, vh);
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth   = 4;
+    ctx.shadowColor = '#10b981';
+    ctx.shadowBlur  = 10;
+    ctx.beginPath();
+    ctx.moveTo(loc.topLeftCorner.x,     loc.topLeftCorner.y);
+    ctx.lineTo(loc.topRightCorner.x,    loc.topRightCorner.y);
+    ctx.lineTo(loc.bottomRightCorner.x, loc.bottomRightCorner.y);
+    ctx.lineTo(loc.bottomLeftCorner.x,  loc.bottomLeftCorner.y);
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  function clearQROverlay() {
+    const overlay = document.getElementById('qr-canvas-overlay');
+    if (overlay.width) {
+      overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
+    }
+  }
+
+  /* ─ Cleanup ─ */
+  window.addEventListener('beforeunload', stopCamera);
+  </script>
+</body>
+</html>

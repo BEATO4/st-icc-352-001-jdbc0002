@@ -30,6 +30,9 @@ public class Articulo implements Serializable {
     @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<Etiqueta> listaEtiquetas;
 
+    //una funcion que genera un nuevo ususario
+
+
     // Constructor vacío requerido por JPA
     public Articulo() {
         this.listaComentarios = new ArrayList<>();

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EventPass — Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+  <link rel="stylesheet" href="css/main.css"/>
+</head>
+<body style="background:var(--bg-base)">
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    if (!requireAuth()) throw '';
+    buildLayout('Dashboard', 'Resumen general del sistema');
+  </script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <script>
+  (async () => {
+    const user = Auth.get();
+    const root = document.getElementById('page-root');
+
+    root.innerHTML = `
+      <div class="page-header">
+        <div class="page-header-left">
+          <h2>Bienvenido, ${user.name} <span style="font-size:20px">👋</span></h2>
+          <p>Aquí tienes el resumen de la plataforma en tiempo real.</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh">
+          <i class="bi bi-arrow-clockwise"></i> Actualizar
+        </button>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="grid-4 mb-4" id="stat-grid">
+        ${statSkeleton(4)}
+      </div>
+
+      <!-- Main content row -->
+      <div style="display:grid;grid-template-columns:1fr 380px;gap:16px;margin-bottom:16px" id="main-row">
+        <!-- Events table -->
+        <div class="card-ep">
+          <div class="card-header-ep">
+            <span class="title"><i class="bi bi-calendar-event"></i> Eventos Recientes</span>
+            <a href="events.html" class="btn btn-ghost btn-sm">Ver todos <i class="bi bi-arrow-right"></i></a>
+          </div>
+          <div class="card-body-ep" style="padding:0">
+            <div class="table-wrap">
+              <table class="ep-table">
+                <thead>
+                  <tr>
+                    <th>Título</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Capacidad</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-events-tbody">
+                  ${tableSkeletonRows(4,4)}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick actions + chart -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card-ep">
+            <div class="card-header-ep">
+              <span class="title"><i class="bi bi-lightning-charge"></i> Acciones Rápidas</span>
+            </div>
+            <div class="card-body-ep" style="display:flex;flex-direction:column;gap:8px;padding:16px">
+              ${quickBtn('events.html',          'bi-calendar-plus',    'Crear Evento',        Auth.isOrganizer())}
+              ${quickBtn('scan.html',            'bi-qr-code-scan',     'Escanear QR',         Auth.isOrganizer())}
+              ${quickBtn('events.html',          'bi-search',           'Explorar Eventos',    true)}
+              ${quickBtn('my-registrations.html','bi-ticket-perforated','Mis Inscripciones',   true)}
+              ${Auth.isAdmin() ? quickBtn('admin.html','bi-shield-check','Panel Admin',true) : ''}
+            </div>
+          </div>
+
+          <div class="card-ep" id="chart-card" style="${Auth.isOrganizer() ? '' : 'display:none'}">
+            <div class="card-header-ep">
+              <span class="title"><i class="bi bi-pie-chart"></i> Estado Eventos</span>
+            </div>
+            <div class="card-body-ep" style="display:flex;align-items:center;justify-content:center;min-height:160px">
+              <canvas id="status-chart" width="200" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Role-specific stats row (organizer/admin only) -->
+      ${Auth.isOrganizer() ? `
+      <div class="card-ep" id="event-stats-card">
+        <div class="card-header-ep">
+          <span class="title"><i class="bi bi-bar-chart-line"></i> Estadísticas por Evento</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select class="form-select" id="stats-event-select" style="width:220px;padding:6px 10px;font-size:13px">
+              <option value="">Seleccionar evento...</option>
+            </select>
+            <button class="btn btn-outline-accent btn-sm" id="btn-load-stats">
+              <i class="bi bi-graph-up"></i> Ver
+            </button>
+          </div>
+        </div>
+        <div class="card-body-ep" id="stats-detail">
+          <div class="empty-state">
+            <i class="bi bi-bar-chart"></i>
+            <h4>Selecciona un evento</h4>
+            <p>Elige un evento para ver sus estadísticas detalladas</p>
+          </div>
+        </div>
+      </div>` : ''}
+    `;
+
+    /* Responsive grid fix */
+    const mainRow = document.getElementById('main-row');
+    function checkWidth() {
+      if (mainRow) mainRow.style.gridTemplateColumns = window.innerWidth < 900 ? '1fr' : '1fr 380px';
+    }
+    window.addEventListener('resize', checkWidth);
+    checkWidth();
+
+    await loadDashboard();
+
+    document.getElementById('btn-refresh')?.addEventListener('click', loadDashboard);
+    document.getElementById('btn-load-stats')?.addEventListener('click', loadEventStats);
+  })();
+
+  function statSkeleton(n) {
+    return Array.from({length:n}, () => `
+      <div class="stat-card">
+        <div class="skeleton" style="width:44px;height:44px;border-radius:10px"></div>
+        <div>
+          <div class="skeleton skeleton-line" style="width:60px;height:28px;margin-bottom:8px"></div>
+          <div class="skeleton skeleton-line w-75 short"></div>
+        </div>
+      </div>`).join('');
+  }
+
+  function quickBtn(href, icon, label, show) {
+    if (!show) return '';
+    return `<a href="${href}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;
+            border-radius:var(--radius-sm);border:1px solid var(--border);color:var(--text-secondary);
+            text-decoration:none;font-size:13px;font-weight:600;transition:all 0.2s;background:var(--bg-raised)"
+            onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+            onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'">
+      <i class="bi ${icon}" style="font-size:16px;width:20px;text-align:center"></i>
+      <span>${label}</span>
+      <i class="bi bi-chevron-right" style="margin-left:auto;font-size:12px;opacity:0.5"></i>
+    </a>`;
+  }
+
+  let statusChart = null;
+
+  async function loadDashboard() {
+    try {
+      /* Load events for the table */
+      const events = Auth.isOrganizer()
+        ? await api.getMyEvents()
+        : await api.getEvents();
+
+      /* Stat counts */
+      const total     = events.length;
+      const published = events.filter(e => e.status === 'PUBLISHED').length;
+      const cancelled = events.filter(e => e.status === 'CANCELLED').length;
+      const draft     = events.filter(e => e.status === 'DRAFT').length;
+
+      /* Render stat cards */
+      const grid = document.getElementById('stat-grid');
+      const statDefs = [
+        { val: total,     label: 'Total Eventos',    icon: 'bi-calendar', cls: 'stat-blue' },
+        { val: published, label: 'Publicados',        icon: 'bi-broadcast', cls: 'stat-green' },
+        { val: draft,     label: 'Borradores',        icon: 'bi-pencil', cls: 'stat-amber' },
+        { val: cancelled, label: 'Cancelados',        icon: 'bi-x-circle', cls: 'stat-red' }
+      ];
+      grid.innerHTML = statDefs.map(s => `
+        <div class="stat-card ${s.cls} animate-in">
+          <div class="stat-icon"><i class="bi ${s.icon}"></i></div>
+          <div class="stat-value" id="sv-${s.label}">0</div>
+          <div class="stat-label">${s.label}</div>
+        </div>`).join('');
+      /* Animate counters */
+      statDefs.forEach(s => {
+        const el = document.getElementById(`sv-${s.label}`);
+        if (el) animateCount(el, s.val);
+      });
+
+      /* Recent events table */
+      const tbody = document.getElementById('recent-events-tbody');
+      const slice = events.slice(0,6);
+      tbody.innerHTML = slice.length === 0
+        ? `<tr><td colspan="4"><div class="empty-state" style="padding:24px"><i class="bi bi-calendar-x" style="font-size:32px"></i><p>Sin eventos</p></div></td></tr>`
+        : slice.map(e => `
+          <tr>
+            <td><span style="font-weight:600">${e.title}</span></td>
+            <td style="font-size:12px;color:var(--text-secondary)">${fmtDate(e.dateTime)}</td>
+            <td>${eventStatusBadge(e.status)}</td>
+            <td style="font-size:12px">${e.maxCapacity}</td>
+          </tr>`).join('');
+
+      /* Donut chart */
+      if (Auth.isOrganizer()) {
+        const ctx = document.getElementById('status-chart');
+        if (ctx) {
+          if (statusChart) statusChart.destroy();
+          statusChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: ['Publicado','Borrador','Cancelado'],
+              datasets: [{
+                data: [published, draft, cancelled],
+                backgroundColor: ['#10b981','#f59e0b','#ef4444'],
+                borderColor: '#161b22',
+                borderWidth: 3
+              }]
+            },
+            options: {
+              cutout: '68%',
+              plugins: {
+                legend: { position: 'bottom', labels: { color: '#8b949e', font: { family: 'Outfit', size: 12 }, padding: 12, boxWidth: 10 } }
+              }
+            }
+          });
+        }
+
+        /* Populate stats event select */
+        const sel = document.getElementById('stats-event-select');
+        if (sel) {
+          sel.innerHTML = '<option value="">Seleccionar evento...</option>'
+            + events.map(e => `<option value="${e.id}">${e.title}</option>`).join('');
+        }
+      }
+    } catch (err) {
+      showToast(err.message || 'Error al cargar datos', 'error');
+    }
+  }
+
+  async function loadEventStats() {
+    const sel = document.getElementById('stats-event-select');
+    const id = sel?.value;
+    if (!id) { showToast('Selecciona un evento primero', 'warning'); return; }
+    const btn = document.getElementById('btn-load-stats');
+    setLoading(btn, true);
+    try {
+      const s = await api.getStats(id);
+      const detail = document.getElementById('stats-detail');
+      detail.innerHTML = `
+        <div class="grid-4 animate-in" style="margin-bottom:16px">
+          <div class="stat-card stat-blue">
+            <div class="stat-icon"><i class="bi bi-people"></i></div>
+            <div class="stat-value">${s.totalRegistrations ?? '—'}</div>
+            <div class="stat-label">Inscripciones</div>
+          </div>
+          <div class="stat-card stat-green">
+            <div class="stat-icon"><i class="bi bi-patch-check"></i></div>
+            <div class="stat-value">${s.totalAttendances ?? '—'}</div>
+            <div class="stat-label">Asistencias</div>
+          </div>
+          <div class="stat-card stat-amber">
+            <div class="stat-icon"><i class="bi bi-person-dash"></i></div>
+            <div class="stat-value">${s.absentees ?? '—'}</div>
+            <div class="stat-label">Ausentes</div>
+          </div>
+          <div class="stat-card stat-purple">
+            <div class="stat-icon"><i class="bi bi-percent"></i></div>
+            <div class="stat-value">${s.attendanceRate != null ? s.attendanceRate.toFixed(1)+'%' : '—'}</div>
+            <div class="stat-label">Tasa Asistencia</div>
+          </div>
+        </div>
+        ${s.attendanceRate != null ? `
+        <div style="background:var(--bg-raised);border-radius:var(--radius-sm);height:8px;overflow:hidden">
+          <div style="height:100%;width:${s.attendanceRate}%;background:linear-gradient(90deg,var(--accent),var(--primary));border-radius:var(--radius-sm);transition:width 1s ease"></div>
+        </div>
+        <div style="text-align:right;font-size:12px;color:var(--text-muted);margin-top:4px">${s.attendanceRate.toFixed(1)}% de tasa de asistencia</div>
+        ` : ''}
+      `;
+    } catch (err) {
+      showToast(err.message || 'Error al cargar estadísticas', 'error');
+    } finally {
+      setLoading(btn, false);
+    }
+  }
+  </script>
+</body>
+</html>

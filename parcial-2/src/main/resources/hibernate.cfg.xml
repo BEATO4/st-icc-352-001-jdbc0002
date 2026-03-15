@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+    <session-factory>
+        <!--  ── H2 in-memory + file-backed database ──  -->
+        <!--  Persists to ./data/eventpass so data survives restarts  -->
+        <property name="hibernate.connection.driver_class">org.h2.Driver</property>
+        <property name="hibernate.connection.url"> jdbc:h2:file:./data/eventpass;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE </property>
+        <property name="hibernate.connection.username">sa</property>
+        <property name="hibernate.connection.password"/>
+        <!--  ── Dialect ──  -->
+        <property name="hibernate.dialect">org.hibernate.dialect.H2Dialect</property>
+        <!--  ── Connection pool (built-in C3P0-lite) ──  -->
+        <property name="hibernate.connection.pool_size">10</property>
+        <!--  ── Schema: update adds missing columns/tables without dropping data ──  -->
+        <property name="hibernate.hbm2ddl.auto">update</property>
+        <!--  ── JSON serialization: make LocalDateTime serialize as ISO strings ──  -->
+        <property name="hibernate.jdbc.time_zone">UTC</property>
+        <!--  ── Logging: set to true only for debugging SQL ──  -->
+        <property name="hibernate.show_sql">false</property>
+        <property name="hibernate.format_sql">false</property>
+        <!--  ── Entity mappings ──  -->
+        <mapping class="edu.pucmm.icc352.models.User"/>
+        <mapping class="edu.pucmm.icc352.models.Event"/>
+        <mapping class="edu.pucmm.icc352.models.Registration"/>
+        <mapping class="edu.pucmm.icc352.models.Attendance"/>
+    </session-factory>
+</hibernate-configuration>

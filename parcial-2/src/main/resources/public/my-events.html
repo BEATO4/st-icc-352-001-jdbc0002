@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EventPass — Mis Eventos</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+  <link rel="stylesheet" href="css/main.css"/>
+</head>
+<body style="background:var(--bg-base)">
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    if (!requireAuth()) throw '';
+    if (!Auth.isOrganizer()) { window.location.href = '/events.html'; throw ''; }
+    buildLayout('Mis Eventos', 'Crea, edita y gestiona tus eventos');
+  </script>
+
+  <!-- MODAL: CREATE / EDIT EVENT -->
+  <div class="modal-overlay" id="modal-event-form">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <h3><i class="bi bi-calendar-event" style="color:var(--accent)"></i> <span id="form-modal-title">Nuevo Evento</span></h3>
+        <button class="modal-close" onclick="closeModal('modal-event-form')"><i class="bi bi-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-event" novalidate>
+          <input type="hidden" id="ev-id"/>
+          <div style="display:grid;grid-template-columns:1fr 190px;gap:14px;margin-bottom:14px">
+            <div>
+              <label class="form-label" for="ev-title">Título <span class="req">*</span></label>
+              <input type="text" class="form-control" id="ev-title" placeholder="Ej: Congreso Tech 2025" required minlength="3" maxlength="200"/>
+              <div class="invalid-feedback">Mínimo 3 caracteres.</div>
+            </div>
+            <div>
+              <label class="form-label" for="ev-capacity">Capacidad <span class="req">*</span></label>
+              <input type="number" class="form-control" id="ev-capacity" placeholder="200" required min="1"/>
+              <div class="invalid-feedback">Debe ser ≥ 1.</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div>
+              <label class="form-label" for="ev-datetime">Fecha y hora <span class="req">*</span></label>
+              <input type="datetime-local" class="form-control" id="ev-datetime" required/>
+              <div class="invalid-feedback">Selecciona una fecha futura.</div>
+            </div>
+            <div>
+              <label class="form-label" for="ev-location">Lugar <span class="req">*</span></label>
+              <input type="text" class="form-control" id="ev-location" placeholder="Auditorio Principal" required minlength="3"/>
+              <div class="invalid-feedback">Ingresa el lugar.</div>
+            </div>
+          </div>
+          <div>
+            <label class="form-label" for="ev-description">Descripción</label>
+            <textarea class="form-control" id="ev-description" rows="3" placeholder="Describe el evento..." maxlength="1000"></textarea>
+            <div style="text-align:right;font-size:11px;color:var(--text-muted);margin-top:3px"><span id="desc-count">0</span>/1000</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-event-form')">Cancelar</button>
+        <button class="btn btn-primary" id="btn-event-save">
+          <i class="bi bi-check-lg"></i> <span id="save-btn-label">Crear Evento</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ATTENDEES -->
+  <div class="modal-overlay" id="modal-attendees">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 id="att-modal-title"><i class="bi bi-people" style="color:var(--accent)"></i> Asistentes</h3>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="att-subtitle"></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" id="btn-export-att"><i class="bi bi-download"></i> CSV</button>
+          <button class="modal-close" onclick="closeModal('modal-attendees')"><i class="bi bi-x"></i></button>
+        </div>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <div id="att-summary-strip" style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--border)"></div>
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+          <div class="input-group" style="max-width:280px">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="att-search" placeholder="Buscar participante..." style="font-size:13px"/>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="ep-table">
+            <thead><tr><th>#</th><th>Participante</th><th>Email</th><th>Inscrito</th><th>Estado</th></tr></thead>
+            <tbody id="att-tbody"><tr><td colspan="5"><div style="display:flex;justify-content:center;padding:24px"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: STATS -->
+  <div class="modal-overlay" id="modal-stats">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <h3><i class="bi bi-bar-chart-line" style="color:var(--accent)"></i> Estadísticas</h3>
+        <button class="modal-close" onclick="closeModal('modal-stats')"><i class="bi bi-x"></i></button>
+      </div>
+      <div class="modal-body" id="stats-modal-body">
+        <div style="display:flex;justify-content:center;padding:32px"><div class="spinner spinner-lg"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DETAIL -->
+  <div class="modal-overlay" id="modal-detail">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="detail-modal-title">Detalle del Evento</h3>
+        <button class="modal-close" onclick="closeModal('modal-detail')"><i class="bi bi-x"></i></button>
+      </div>
+      <div class="modal-body" id="detail-modal-body">
+        <div style="display:flex;justify-content:center;padding:24px"><div class="spinner spinner-lg"></div></div>
+      </div>
+      <div class="modal-footer" id="detail-modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-detail')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script>
+  const root = document.getElementById('page-root');
+
+  root.innerHTML = `
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2>Mis Eventos</h2>
+        <p>Administra y analiza los eventos que organizas</p>
+      </div>
+      <button class="btn btn-primary" onclick="openEventForm()">
+        <i class="bi bi-plus-lg"></i> Nuevo Evento
+      </button>
+    </div>
+
+    <div class="grid-4" style="margin-bottom:20px">
+      ${['stat-blue','stat-green','stat-amber','stat-red'].map((c,i) => `
+        <div class="stat-card ${c} elevate-hover">
+          <div class="stat-icon"><i class="bi ${['bi-calendar-event','bi-broadcast','bi-pencil','bi-x-circle'][i]}"></i></div>
+          <div class="stat-value" id="ms-${i}">—</div>
+          <div class="stat-label">${['Total','Publicados','Borradores','Cancelados'][i]}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="card-ep" style="margin-bottom:16px">
+      <div class="card-body-ep" style="padding:12px 18px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div class="input-group" style="max-width:280px">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="ev-search" placeholder="Buscar por título o lugar..." style="font-size:13px"/>
+          </div>
+          <div class="filter-chips">
+            <button class="chip active" data-f="ALL">Todos</button>
+            <button class="chip" data-f="PUBLISHED">Publicados</button>
+            <button class="chip" data-f="DRAFT">Borradores</button>
+            <button class="chip" data-f="CANCELLED">Cancelados</button>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn btn-secondary btn-sm btn-icon" id="btn-vg" onclick="setView('grid')" title="Cuadrícula"><i class="bi bi-grid-3x3-gap"></i></button>
+            <button class="btn btn-ghost    btn-sm btn-icon" id="btn-vt" onclick="setView('table')" title="Tabla"><i class="bi bi-list"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="events-body">
+      <div style="display:flex;justify-content:center;padding:48px"><div class="spinner spinner-lg"></div></div>
+    </div>
+  `;
+
+  /* ── State ── */
+  let myEvents    = [];
+  let filterMode  = 'ALL';
+  let searchQuery = '';
+  let viewMode    = 'grid';
+  let allAttendees = [];
+  let statsChartRef = null;
+
+  /* ── Wire UI ── */
+  document.getElementById('ev-search').addEventListener('input',
+    debounce(function() { searchQuery = this.value.toLowerCase(); renderEvents(); }, 240)
+  );
+  document.querySelectorAll('.chip[data-f]').forEach(c =>
+    c.addEventListener('click', () => {
+      filterMode = c.dataset.f;
+      document.querySelectorAll('.chip[data-f]').forEach(x => x.classList.toggle('active', x === c));
+      renderEvents();
+    })
+  );
+  document.getElementById('ev-description').addEventListener('input', function() {
+    document.getElementById('desc-count').textContent = this.value.length;
+  });
+
+  /* ── Load ── */
+  async function load() {
+    try {
+      myEvents = await api.getMyEvents();
+      const pub = myEvents.filter(e => e.status === 'PUBLISHED').length;
+      const dft = myEvents.filter(e => e.status === 'DRAFT').length;
+      const can = myEvents.filter(e => e.status === 'CANCELLED').length;
+      [myEvents.length, pub, dft, can].forEach((v, i) =>
+        animateCount(document.getElementById('ms-'+i), v)
+      );
+      renderEvents();
+    } catch(err) { showToast(err.message, 'error'); }
+  }
+
+  function filtered() {
+    return myEvents.filter(e => {
+      const fm = filterMode === 'ALL' || e.status === filterMode;
+      const sq = !searchQuery
+        || e.title.toLowerCase().includes(searchQuery)
+        || (e.location||'').toLowerCase().includes(searchQuery);
+      return fm && sq;
+    });
+  }
+
+  function setView(v) {
+    viewMode = v;
+    document.getElementById('btn-vg').className = `btn btn-sm btn-icon ${v==='grid' ?'btn-secondary':'btn-ghost'}`;
+    document.getElementById('btn-vt').className = `btn btn-sm btn-icon ${v==='table'?'btn-secondary':'btn-ghost'}`;
+    renderEvents();
+  }
+
+  /* ── Render ── */
+  function renderEvents() {
+    const list = filtered();
+    const body = document.getElementById('events-body');
+    if (!list.length) {
+      body.innerHTML = `<div class="empty-state">
+        <i class="bi bi-calendar-x"></i><h4>Sin eventos</h4>
+        <p>No hay eventos con los filtros actuales.</p>
+        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openEventForm()">
+          <i class="bi bi-plus-lg"></i> Crear Evento
+        </button></div>`;
+      return;
+    }
+    if (viewMode === 'grid') {
+      body.innerHTML = `<div class="grid-auto animate-in">${list.map(eventCard).join('')}</div>`;
+    } else {
+      body.innerHTML = `
+        <div class="card-ep animate-in">
+          <div class="table-wrap"><table class="ep-table">
+            <thead><tr>
+              <th>Título</th><th>Fecha</th><th>Lugar</th>
+              <th>Cap.</th><th>Estado</th><th>Acciones</th>
+            </tr></thead>
+            <tbody>${list.map(eventTableRow).join('')}</tbody>
+          </table></div>
+        </div>`;
+    }
+  }
+
+  function esc(s) { return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+  function eventCard(e) {
+    return `
+    <div class="event-card elevate-hover animate-in">
+      <div class="event-card-accent"></div>
+      <div class="event-card-body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px">
+          <div class="event-card-title">${e.title}</div>
+          ${eventStatusBadge(e.status)}
+        </div>
+        ${statusStepper(e.status)}
+        <div class="event-card-meta" style="margin-top:10px">
+          <span><i class="bi bi-calendar3"></i> ${fmtDateTime(e.dateTime)}</span>
+          <span><i class="bi bi-geo-alt"></i> ${e.location}</span>
+          <span><i class="bi bi-people"></i> Capacidad: ${e.maxCapacity}</span>
+        </div>
+        ${e.description ? `<div class="event-card-desc" style="margin-top:8px">${e.description}</div>` : ''}
+      </div>
+      <div class="event-card-footer" style="flex-wrap:wrap;gap:6px">
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="viewDetail(${e.id})" title="Ver detalle"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="showAttendees(${e.id},'${esc(e.title)}')" title="Asistentes"><i class="bi bi-people"></i></button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="showStats(${e.id})" title="Estadísticas"><i class="bi bi-bar-chart-line"></i></button>
+        </div>
+        <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap">
+          ${e.status !== 'CANCELLED' ? `<button class="btn btn-secondary btn-sm" onclick="openEventForm(${e.id})"><i class="bi bi-pencil"></i> Editar</button>` : ''}
+          ${e.status === 'DRAFT'     ? `<button class="btn btn-outline-accent btn-sm" onclick="doPublish(${e.id},true)"><i class="bi bi-broadcast"></i> Publicar</button>` : ''}
+          ${e.status === 'PUBLISHED' ? `<button class="btn btn-secondary btn-sm" onclick="doPublish(${e.id},false)"><i class="bi bi-stop-circle"></i> Pausar</button>` : ''}
+          ${e.status !== 'CANCELLED' ? `<button class="btn btn-danger btn-sm btn-icon" onclick="doCancel(${e.id})" title="Cancelar"><i class="bi bi-x-circle"></i></button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function eventTableRow(e) {
+    return `<tr class="animate-in">
+      <td style="font-weight:600">${e.title}</td>
+      <td style="font-size:12px;white-space:nowrap;color:var(--text-secondary)">${fmtDateTime(e.dateTime)}</td>
+      <td style="font-size:12px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.location}</td>
+      <td style="font-size:13px;text-align:center">${e.maxCapacity}</td>
+      <td>${eventStatusBadge(e.status)}</td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="viewDetail(${e.id})" title="Ver"><i class="bi bi-eye"></i></button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="showAttendees(${e.id},'${esc(e.title)}')" title="Asistentes"><i class="bi bi-people"></i></button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="showStats(${e.id})" title="Stats"><i class="bi bi-bar-chart-line"></i></button>
+          ${e.status !== 'CANCELLED' ? `<button class="btn btn-secondary btn-sm btn-icon" onclick="openEventForm(${e.id})" title="Editar"><i class="bi bi-pencil"></i></button>` : ''}
+          ${e.status === 'DRAFT'     ? `<button class="btn btn-outline-accent btn-sm btn-icon" onclick="doPublish(${e.id},true)" title="Publicar"><i class="bi bi-broadcast"></i></button>` : ''}
+          ${e.status === 'PUBLISHED' ? `<button class="btn btn-secondary btn-sm btn-icon" onclick="doPublish(${e.id},false)" title="Pausar"><i class="bi bi-stop-circle"></i></button>` : ''}
+          ${e.status !== 'CANCELLED' ? `<button class="btn btn-danger btn-sm btn-icon" onclick="doCancel(${e.id})" title="Cancelar"><i class="bi bi-x-circle"></i></button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  /* ── Create / Edit form ── */
+  function openEventForm(eventId = null) {
+    const isEdit = eventId !== null;
+    document.getElementById('form-modal-title').textContent = isEdit ? 'Editar Evento' : 'Nuevo Evento';
+    document.getElementById('save-btn-label').textContent   = isEdit ? 'Guardar Cambios' : 'Crear Evento';
+    document.getElementById('ev-id').value = eventId || '';
+
+    /* Clear validation */
+    ['ev-title','ev-datetime','ev-location','ev-capacity'].forEach(id =>
+      document.getElementById(id).classList.remove('is-invalid','is-valid')
+    );
+
+    if (isEdit) {
+      const ev = myEvents.find(e => e.id === eventId);
+      if (!ev) return;
+      document.getElementById('ev-title').value       = ev.title       || '';
+      document.getElementById('ev-location').value    = ev.location    || '';
+      document.getElementById('ev-capacity').value    = ev.maxCapacity || '';
+      document.getElementById('ev-description').value = ev.description || '';
+      document.getElementById('desc-count').textContent = (ev.description||'').length;
+      if (ev.dateTime) {
+        const d = new Date(ev.dateTime);
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        document.getElementById('ev-datetime').value = d.toISOString().slice(0,16);
+      }
+    } else {
+      document.getElementById('form-event').reset();
+      document.getElementById('desc-count').textContent = '0';
+      const tom = new Date(); tom.setDate(tom.getDate()+1); tom.setHours(9,0,0,0);
+      tom.setMinutes(tom.getMinutes() - tom.getTimezoneOffset());
+      document.getElementById('ev-datetime').value = tom.toISOString().slice(0,16);
+    }
+    const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('ev-datetime').min = now.toISOString().slice(0,16);
+
+    openModal('modal-event-form');
+    setTimeout(() => document.getElementById('ev-title').focus(), 80);
+  }
+
+  document.getElementById('btn-event-save').addEventListener('click', async () => {
+    const id       = document.getElementById('ev-id').value;
+    const title    = document.getElementById('ev-title');
+    const datetime = document.getElementById('ev-datetime');
+    const capacity = document.getElementById('ev-capacity');
+    const location = document.getElementById('ev-location');
+    const desc     = document.getElementById('ev-description');
+
+    let ok = true;
+    if (!validateField(title,    Rules.minLen(3)))   ok = false;
+    if (!validateField(datetime, Rules.required))    ok = false;
+    if (!validateField(capacity, Rules.positiveInt)) ok = false;
+    if (!validateField(location, Rules.minLen(3)))   ok = false;
+    if (!ok) { showToast('Revisa los campos en rojo', 'warning', 'Formulario incompleto'); return; }
+
+    const payload = {
+      title:       title.value.trim(),
+      dateTime:    datetime.value + (datetime.value.includes('T') && !datetime.value.includes(':',14) ? ':00' : ''),
+      maxCapacity: parseInt(capacity.value),
+      location:    location.value.trim(),
+      description: desc.value.trim()
+    };
+
+    const btn = document.getElementById('btn-event-save');
+    setLoading(btn, true);
+    try {
+      if (id) {
+        await api.updateEvent(id, payload);
+        showToast('Evento actualizado exitosamente', 'success');
+      } else {
+        await api.createEvent(payload);
+        showToast('Evento creado exitosamente', 'success');
+      }
+      closeModal('modal-event-form');
+      await load();
+    } catch(err) {
+      showToast(err.message || 'Error al guardar', 'error');
+    } finally {
+      setLoading(btn, false);
+    }
+  });
+
+  /* ── Publish / Cancel ── */
+  async function doPublish(id, publish) {
+    try {
+      await api.publishEvent(id, publish);
+      showToast(publish ? 'Evento publicado ✓' : 'Evento puesto en borrador', publish ? 'success' : 'info');
+      await load();
+    } catch(err) { showToast(err.message, 'error'); }
+  }
+
+  async function doCancel(id) {
+    const ev = myEvents.find(e => e.id === id);
+    const confirmed = await confirmDialog({
+      title:       '¿Cancelar este evento?',
+      message:     `<strong>${ev?.title||'Este evento'}</strong> será marcado como cancelado. Esta acción no se puede deshacer.`,
+      type:        'danger',
+      confirmText: 'Sí, cancelar',
+      cancelText:  'Mantener'
+    });
+    if (!confirmed) return;
+    try {
+      await api.cancelEvent(id);
+      showToast('Evento cancelado', 'warning');
+      await load();
+    } catch(err) { showToast(err.message, 'error'); }
+  }
+
+  /* ── Detail modal ── */
+  async function viewDetail(id) {
+    openModal('modal-detail');
+    document.getElementById('detail-modal-body').innerHTML =
+      `<div style="display:flex;justify-content:center;padding:24px"><div class="spinner spinner-lg"></div></div>`;
+    try {
+      const e = await api.getEvent(id);
+      document.getElementById('detail-modal-title').innerHTML =
+        `<i class="bi bi-calendar-event" style="color:var(--accent)"></i> ${e.title}`;
+      document.getElementById('detail-modal-body').innerHTML = `
+        <div style="margin-bottom:16px">${statusStepper(e.status)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div>
+            <div class="section-label">Fecha y Hora</div>
+            <div style="font-size:14px"><i class="bi bi-calendar3" style="color:var(--accent);margin-right:6px"></i>${fmtDateTime(e.dateTime)}</div>
+          </div>
+          <div>
+            <div class="section-label">Capacidad</div>
+            <div style="font-size:14px"><i class="bi bi-people" style="color:var(--accent);margin-right:6px"></i>${e.maxCapacity} personas</div>
+          </div>
+          <div style="grid-column:1/-1">
+            <div class="section-label">Lugar</div>
+            <div style="font-size:14px"><i class="bi bi-geo-alt" style="color:var(--accent);margin-right:6px"></i>${e.location}</div>
+          </div>
+          ${e.description ? `<div style="grid-column:1/-1">
+            <div class="section-label">Descripción</div>
+            <div style="font-size:14px;color:var(--text-secondary);line-height:1.6">${e.description}</div>
+          </div>` : ''}
+          <div style="grid-column:1/-1">
+            <div class="section-label">Creado</div>
+            <div style="font-size:12px;color:var(--text-muted)">${fmtDateTime(e.createdAt)}</div>
+          </div>
+        </div>`;
+      document.getElementById('detail-modal-footer').innerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal('modal-detail')">Cerrar</button>
+        ${e.status !== 'CANCELLED'
+          ? `<button class="btn btn-primary" onclick="closeModal('modal-detail');openEventForm(${e.id})"><i class="bi bi-pencil"></i> Editar</button>`
+          : ''}`;
+    } catch(err) {
+      document.getElementById('detail-modal-body').innerHTML =
+        `<div class="empty-state"><i class="bi bi-exclamation-circle"></i><h4>Error</h4><p>${err.message}</p></div>`;
+    }
+  }
+
+  /* ── Attendees modal ── */
+  async function showAttendees(eventId, title) {
+    document.getElementById('att-modal-title').innerHTML =
+      `<i class="bi bi-people" style="color:var(--accent)"></i> ${title}`;
+    document.getElementById('att-subtitle').textContent = '';
+    document.getElementById('att-summary-strip').innerHTML = '';
+    document.getElementById('att-search').value = '';
+    document.getElementById('att-tbody').innerHTML =
+      `<tr><td colspan="5"><div style="display:flex;justify-content:center;padding:24px"><div class="spinner"></div></div></td></tr>`;
+    openModal('modal-attendees');
+
+    try {
+      allAttendees = await api.getEventAttendees(eventId);
+      const total    = allAttendees.length;
+      const attended = allAttendees.filter(r => r.attended).length;
+      const pct      = total > 0 ? Math.round((attended/total)*100) : 0;
+
+      document.getElementById('att-subtitle').textContent =
+        `${total} inscrito${total!==1?'s':''} · ${attended} asistieron (${pct}%)`;
+
+      document.getElementById('att-summary-strip').innerHTML =
+        [['Inscritos',total,'var(--primary)'],['Asistieron',attended,'var(--accent)'],['Pendientes',total-attended,'var(--warning)']]
+        .map(([l,v,c]) => `
+          <div style="padding:14px 16px;text-align:center;border-right:1px solid var(--border)">
+            <div style="font-size:22px;font-weight:800;color:${c}">${v}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${l}</div>
+          </div>`).join('');
+
+      renderAttendees(allAttendees);
+
+      document.getElementById('btn-export-att').onclick = () => {
+        downloadCSV(
+          [['#','Nombre','Email','Inscrito','Asistió'],
+           ...allAttendees.map((r,i) => [i+1,r.user?.name||'',r.user?.email||'',fmtDateTime(r.registeredAt),r.attended?'Sí':'No'])],
+          `asistentes_${eventId}.csv`
+        );
+        showToast('CSV descargado', 'success');
+      };
+
+      document.getElementById('att-search').oninput = debounce(function() {
+        const q = this.value.toLowerCase();
+        renderAttendees(!q ? allAttendees : allAttendees.filter(r =>
+          r.user?.name?.toLowerCase().includes(q) || r.user?.email?.toLowerCase().includes(q)
+        ));
+      }, 200);
+    } catch(err) {
+      document.getElementById('att-tbody').innerHTML =
+        `<tr><td colspan="5"><div class="empty-state" style="padding:24px"><i class="bi bi-exclamation-circle"></i><p>${err.message}</p></div></td></tr>`;
+    }
+  }
+
+  function renderAttendees(list) {
+    const tbody = document.getElementById('att-tbody');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state" style="padding:24px"><i class="bi bi-people" style="font-size:28px"></i><p>Sin resultados</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map((r,i) => `
+      <tr class="animate-in">
+        <td><span class="mono" style="font-size:11px;color:var(--text-muted)">${i+1}</span></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:28px;height:28px;border-radius:50%;flex-shrink:0;
+                        background:${r.attended?'linear-gradient(135deg,var(--accent-dim),var(--primary-dim))':'var(--bg-overlay)'};
+                        display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white">
+              ${(r.user?.name||'?').charAt(0).toUpperCase()}
+            </div>
+            <span style="font-weight:600;font-size:13px">${r.user?.name||'—'}</span>
+          </div>
+        </td>
+        <td style="font-size:12px;color:var(--text-secondary)">${r.user?.email||'—'}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${fmtDateTime(r.registeredAt)}</td>
+        <td>
+          ${r.attended
+            ? `<span class="badge badge-green"><i class="bi bi-check-circle"></i> Asistió</span>`
+            : `<span class="badge badge-gray"><i class="bi bi-hourglass-split"></i> Pendiente</span>`}
+        </td>
+      </tr>`).join('');
+  }
+
+  /* ── Stats modal with Chart + progress ring ── */
+  async function showStats(eventId) {
+    openModal('modal-stats');
+    document.getElementById('stats-modal-body').innerHTML =
+      `<div style="display:flex;justify-content:center;padding:32px"><div class="spinner spinner-lg"></div></div>`;
+    try {
+      const s  = await api.getStats(eventId);
+      const ev = myEvents.find(e => e.id === eventId);
+      const rate = s.attendanceRate ?? 0;
+      const rateColor = rate >= 75 ? 'var(--accent)' : rate >= 40 ? 'var(--warning)' : 'var(--danger)';
+
+      document.getElementById('stats-modal-body').innerHTML = `
+        <div style="margin-bottom:6px;font-size:12px;color:var(--text-muted);text-align:center">${ev?.title||''}</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)">
+          ${progressRing(rate, rateColor, 'Asistencia')}
+          <div style="flex:1;min-width:200px">
+            ${[
+              ['Inscripciones', s.totalRegistrations??0, 'var(--primary)',  'bi-people'],
+              ['Asistencias',   s.totalAttendances??0,   'var(--accent)',   'bi-patch-check'],
+              ['Ausentes',      s.absentees??0,          'var(--warning)',  'bi-person-dash']
+            ].map(([label, val, color, icon]) => `
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                <div style="width:32px;height:32px;border-radius:8px;background:${color}18;
+                            display:flex;align-items:center;justify-content:center;color:${color};font-size:14px;flex-shrink:0">
+                  <i class="bi ${icon}"></i>
+                </div>
+                <div style="flex:1">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                    <span style="font-size:12px;color:var(--text-muted)">${label}</span>
+                    <span style="font-size:12px;font-weight:700;color:${color}">${val}</span>
+                  </div>
+                  <div style="height:4px;background:var(--bg-raised);border-radius:2px;overflow:hidden">
+                    <div style="height:100%;background:${color};border-radius:2px;transition:width 1s ease;
+                                width:${s.totalRegistrations?Math.round((val/(s.totalRegistrations||1))*100):0}%"></div>
+                  </div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div style="display:flex;justify-content:center"><canvas id="stats-chart-cvs" width="220" height="220"></canvas></div>
+      `;
+
+      if (statsChartRef) statsChartRef.destroy();
+      statsChartRef = new Chart(document.getElementById('stats-chart-cvs'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Asistieron','Ausentes'],
+          datasets: [{
+            data: [s.totalAttendances??0, s.absentees??0],
+            backgroundColor: ['#10b981','#f59e0b'],
+            borderColor: '#1c2333',
+            borderWidth: 4
+          }]
+        },
+        options: {
+          cutout: '70%',
+          plugins: {
+            legend: { position:'bottom', labels:{ color:'#8b949e', font:{family:'Outfit',size:12}, padding:16, boxWidth:12 } },
+            tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` } }
+          }
+        }
+      });
+    } catch(err) {
+      document.getElementById('stats-modal-body').innerHTML =
+        `<div class="empty-state"><i class="bi bi-exclamation-circle"></i><h4>Error</h4><p>${err.message}</p></div>`;
+    }
+  }
+
+  load();
+  </script>
+</body>
+</html>

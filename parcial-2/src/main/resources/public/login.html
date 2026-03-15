@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EventPass — Acceso</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+  <link rel="stylesheet" href="css/main.css"/>
+  <style>
+    .strength-bar { height: 3px; border-radius: 2px; background: var(--bg-raised); overflow: hidden; margin-top: 6px; }
+    .strength-fill { height: 100%; transition: width 0.3s, background 0.3s; }
+    .form-hint { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+  </style>
+</head>
+<body class="auth-page">
+  <div class="auth-bg"></div>
+
+  <div class="auth-card" id="auth-card">
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="logo-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+      <div class="logo-text">Event<span>Pass</span></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs" role="tablist">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">
+        <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+      </button>
+      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">
+        <i class="bi bi-person-plus"></i> Registrarse
+      </button>
+    </div>
+
+    <!-- ── LOGIN FORM ── -->
+    <div id="panel-login">
+      <h1 class="auth-title">Bienvenido</h1>
+      <p class="auth-subtitle">Ingresa tus credenciales para continuar</p>
+
+      <form id="form-login" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="login-email">
+            <i class="bi bi-envelope"></i> Correo electrónico <span class="req">*</span>
+          </label>
+          <input type="email" class="form-control" id="login-email" placeholder="tu@correo.com"
+                 autocomplete="email" required/>
+          <div class="invalid-feedback">Ingresa un correo electrónico válido.</div>
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+            <label class="form-label" for="login-password" style="margin:0">
+              <i class="bi bi-lock"></i> Contraseña <span class="req">*</span>
+            </label>
+          </div>
+          <div class="input-group">
+            <input type="password" class="form-control" id="login-password"
+                   placeholder="Tu contraseña" autocomplete="current-password" required/>
+            <button type="button" class="btn btn-ghost" style="border:1px solid var(--border);border-left:none;border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:0 12px"
+                    onclick="togglePwd('login-password',this)">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          <div class="invalid-feedback">Ingresa tu contraseña.</div>
+        </div>
+
+        <div id="login-error" class="alert-ep d-none"></div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-login">
+          <i class="bi bi-box-arrow-in-right"></i> Ingresar
+        </button>
+      </form>
+
+      <div class="divider-text" style="margin-top:20px">Cuenta de demostración</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="fillDemo('admin@eventpass.com','admin123')">
+          <i class="bi bi-shield-fill"></i> Admin
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="fillDemo('org@eventpass.com','org123')">
+          <i class="bi bi-person-workspace"></i> Organizador
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="fillDemo('user@eventpass.com','user123')">
+          <i class="bi bi-person"></i> Participante
+        </button>
+      </div>
+    </div>
+
+    <!-- ── REGISTER FORM ── -->
+    <div id="panel-register" class="d-none">
+      <h1 class="auth-title">Crear cuenta</h1>
+      <p class="auth-subtitle">Regístrate para acceder a todos los eventos</p>
+
+      <form id="form-register" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="reg-name">
+            <i class="bi bi-person"></i> Nombre completo <span class="req">*</span>
+          </label>
+          <input type="text" class="form-control" id="reg-name"
+                 placeholder="Tu nombre completo" required minlength="3"/>
+          <div class="invalid-feedback">El nombre debe tener al menos 3 caracteres.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-email">
+            <i class="bi bi-envelope"></i> Correo electrónico <span class="req">*</span>
+          </label>
+          <input type="email" class="form-control" id="reg-email"
+                 placeholder="tu@correo.com" required/>
+          <div class="invalid-feedback">Ingresa un correo electrónico válido.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-password">
+            <i class="bi bi-lock"></i> Contraseña <span class="req">*</span>
+          </label>
+          <div class="input-group">
+            <input type="password" class="form-control" id="reg-password"
+                   placeholder="Mínimo 6 caracteres" required minlength="6"
+                   oninput="checkStrength(this.value)"/>
+            <button type="button" class="btn btn-ghost"
+                    style="border:1px solid var(--border);border-left:none;border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:0 12px"
+                    onclick="togglePwd('reg-password',this)">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          <div class="strength-bar"><div class="strength-fill" id="strength-fill" style="width:0%"></div></div>
+          <div class="form-hint" id="strength-label">Ingresa una contraseña segura</div>
+          <div class="invalid-feedback">La contraseña debe tener al menos 6 caracteres.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-confirm">
+            <i class="bi bi-lock-fill"></i> Confirmar contraseña <span class="req">*</span>
+          </label>
+          <input type="password" class="form-control" id="reg-confirm"
+                 placeholder="Repite la contraseña" required/>
+          <div class="invalid-feedback" id="confirm-feedback">Las contraseñas no coinciden.</div>
+        </div>
+
+        <div id="register-error" class="alert-ep d-none"></div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-register">
+          <i class="bi bi-person-check"></i> Crear Cuenta
+        </button>
+      </form>
+    </div>
+
+  </div><!-- /auth-card -->
+
+  <div id="toast-container"></div>
+
+  <!-- Alert style -->
+  <style>
+    .alert-ep { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171;
+                border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 14px; }
+  </style>
+
+  <script src="js/api.js"></script>
+  <script>
+    requireGuest();
+
+    function switchTab(tab) {
+      document.getElementById('panel-login').classList.toggle('d-none', tab !== 'login');
+      document.getElementById('panel-register').classList.toggle('d-none', tab !== 'register');
+      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    }
+
+    function togglePwd(id, btn) {
+      const inp = document.getElementById(id);
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      btn.querySelector('i').className = `bi bi-eye${show ? '-slash' : ''}`;
+    }
+
+    function fillDemo(email, pass) {
+      document.getElementById('login-email').value = email;
+      document.getElementById('login-password').value = pass;
+      showToast('Credenciales de demo cargadas', 'info');
+    }
+
+    function checkStrength(val) {
+      let score = 0;
+      if (val.length >= 6)  score++;
+      if (val.length >= 10) score++;
+      if (/[A-Z]/.test(val)) score++;
+      if (/[0-9]/.test(val)) score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+      const levels = [
+        [0,   '#ef4444', 'Muy débil'],
+        [20,  '#f97316', 'Débil'],
+        [40,  '#f59e0b', 'Regular'],
+        [70,  '#22c55e', 'Fuerte'],
+        [100, '#10b981', 'Muy fuerte']
+      ];
+      const [pct, color, label] = levels[Math.min(score, 4)];
+      document.getElementById('strength-fill').style.width = `${(score/4)*100}%`;
+      document.getElementById('strength-fill').style.background = color;
+      document.getElementById('strength-label').textContent = label;
+    }
+
+    /* ─ Login ─ */
+    document.getElementById('form-login').addEventListener('submit', async e => {
+      e.preventDefault();
+      const email    = document.getElementById('login-email');
+      const password = document.getElementById('login-password');
+      const errEl    = document.getElementById('login-error');
+
+      let ok = true;
+      if (!validateField(email,    Rules.email))    ok = false;
+      if (!validateField(password, Rules.required)) ok = false;
+      if (!ok) return;
+
+      const btn = document.getElementById('btn-login');
+      setLoading(btn, true);
+      errEl.classList.add('d-none');
+
+      try {
+        const user = await api.login(email.value.trim(), password.value);
+        Auth.save(user);
+        showToast(`Bienvenido, ${user.name}!`, 'success');
+        setTimeout(() => window.location.href = '/dashboard.html', 600);
+      } catch (err) {
+        errEl.textContent = err.message || 'Correo o contraseña incorrectos.';
+        errEl.classList.remove('d-none');
+        setLoading(btn, false);
+      }
+    });
+
+    /* Live validation */
+    document.getElementById('login-email').addEventListener('blur', function() {
+      validateField(this, Rules.email);
+    });
+
+    /* ─ Register ─ */
+    document.getElementById('form-register').addEventListener('submit', async e => {
+      e.preventDefault();
+      const name    = document.getElementById('reg-name');
+      const email   = document.getElementById('reg-email');
+      const pwd     = document.getElementById('reg-password');
+      const confirm = document.getElementById('reg-confirm');
+      const errEl   = document.getElementById('register-error');
+
+      let ok = true;
+      if (!validateField(name,  Rules.minLen(3))) ok = false;
+      if (!validateField(email, Rules.email))     ok = false;
+      if (!validateField(pwd,   Rules.minLen(6))) ok = false;
+
+      if (confirm.value !== pwd.value) {
+        confirm.classList.add('is-invalid');
+        ok = false;
+      } else {
+        confirm.classList.remove('is-invalid');
+      }
+      if (!ok) return;
+
+      const btn = document.getElementById('btn-register');
+      setLoading(btn, true);
+      errEl.classList.add('d-none');
+
+      try {
+        await api.register(email.value.trim(), pwd.value, name.value.trim());
+        showToast('Cuenta creada. Iniciando sesión...', 'success');
+        /* Auto-login */
+        const user = await api.login(email.value.trim(), pwd.value);
+        Auth.save(user);
+        setTimeout(() => window.location.href = '/dashboard.html', 700);
+      } catch (err) {
+        errEl.textContent = err.message || 'Error al crear la cuenta.';
+        errEl.classList.remove('d-none');
+        setLoading(btn, false);
+      }
+    });
+
+    /* Live validation for register fields */
+    ['reg-name','reg-email','reg-password'].forEach(id => {
+      document.getElementById(id).addEventListener('blur', function() {
+        if (id === 'reg-email') validateField(this, Rules.email);
+        else if (id === 'reg-name') validateField(this, Rules.minLen(3));
+        else if (id === 'reg-password') validateField(this, Rules.minLen(6));
+      });
+    });
+    document.getElementById('reg-confirm').addEventListener('input', function() {
+      const match = this.value === document.getElementById('reg-password').value;
+      this.classList.toggle('is-invalid', !match);
+    });
+  </script>
+</body>
+</html>

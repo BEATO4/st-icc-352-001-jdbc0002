@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta http-equiv="refresh" content="0; url=/login.html"/>
+  <title>EventPass</title>
+</head>
+<body>
+  <script>
+    const user = (() => { try { return JSON.parse(sessionStorage.getItem('ep_user')); } catch { return null; } })();
+    window.location.href = user ? '/dashboard.html' : '/login.html';
+  </script>
+</body>
+</html>

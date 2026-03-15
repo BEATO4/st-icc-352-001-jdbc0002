@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EventPass — Mis Inscripciones</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+  <link rel="stylesheet" href="css/main.css"/>
+</head>
+<body style="background:var(--bg-base)">
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    if (!requireAuth()) throw '';
+    buildLayout('Mis Inscripciones', 'Tus eventos registrados y códigos QR');
+  </script>
+
+  <!-- QR Modal -->
+  <div class="modal-overlay" id="modal-qr">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="bi bi-qr-code" style="color:var(--accent)"></i> Tu Código QR</h3>
+        <button class="modal-close" onclick="closeModal('modal-qr')"><i class="bi bi-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="qr-display" id="qr-display">
+          <div class="spinner spinner-lg" style="margin:0 auto"></div>
+        </div>
+        <div style="background:var(--bg-raised);border-radius:var(--radius-sm);padding:12px;margin-top:12px;font-size:13px;color:var(--text-secondary)">
+          <i class="bi bi-info-circle" style="color:var(--accent)"></i>
+          Muestra este código QR en la entrada del evento para registrar tu asistencia.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-qr')">Cerrar</button>
+        <button class="btn btn-primary" id="btn-download-qr">
+          <i class="bi bi-download"></i> Descargar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const root = document.getElementById('page-root');
+
+  root.innerHTML = `
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2>Mis Inscripciones</h2>
+        <p>Administra tus registros y accede a tus QR de entrada</p>
+      </div>
+      <a href="events.html" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Explorar Eventos
+      </a>
+    </div>
+
+    <div class="grid-4" style="margin-bottom:20px" id="reg-stats">
+      <div class="stat-card stat-blue">
+        <div class="stat-icon"><i class="bi bi-ticket-perforated"></i></div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-label">Total</div>
+      </div>
+      <div class="stat-card stat-green">
+        <div class="stat-icon"><i class="bi bi-calendar-check"></i></div>
+        <div class="stat-value" id="stat-upcoming">—</div>
+        <div class="stat-label">Próximos</div>
+      </div>
+      <div class="stat-card stat-amber">
+        <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+        <div class="stat-value" id="stat-past">—</div>
+        <div class="stat-label">Pasados</div>
+      </div>
+      <div class="stat-card stat-purple">
+        <div class="stat-icon"><i class="bi bi-broadcast"></i></div>
+        <div class="stat-value" id="stat-active">—</div>
+        <div class="stat-label">Activos</div>
+      </div>
+    </div>
+
+    <div class="card-ep">
+      <div class="card-header-ep">
+        <span class="title"><i class="bi bi-ticket-perforated"></i> Inscripciones</span>
+        <div class="filter-chips">
+          <button class="chip active" data-f="ALL">Todas</button>
+          <button class="chip" data-f="UPCOMING">Próximas</button>
+          <button class="chip" data-f="PAST">Pasadas</button>
+        </div>
+      </div>
+      <div class="card-body-ep" style="padding:0">
+        <div id="regs-container" style="display:flex;justify-content:center;padding:48px">
+          <div class="spinner spinner-lg"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let allRegs = [];
+  let filterMode = 'ALL';
+
+  document.querySelectorAll('.chip[data-f]').forEach(c => {
+    c.addEventListener('click', () => {
+      filterMode = c.dataset.f;
+      document.querySelectorAll('.chip[data-f]').forEach(x => x.classList.toggle('active', x === c));
+      renderRegs();
+    });
+  });
+
+  async function loadRegs() {
+    try {
+      allRegs = await api.getMyRegistrations();
+
+      const now = new Date();
+      const upcoming = allRegs.filter(r => r.event && new Date(r.event.dateTime) > now).length;
+      const past     = allRegs.filter(r => r.event && new Date(r.event.dateTime) <= now).length;
+      const active   = allRegs.filter(r => r.event?.status === 'PUBLISHED').length;
+
+      animateCount(document.getElementById('stat-total'),    allRegs.length);
+      animateCount(document.getElementById('stat-upcoming'), upcoming);
+      animateCount(document.getElementById('stat-past'),     past);
+      animateCount(document.getElementById('stat-active'),   active);
+
+      renderRegs();
+    } catch(err) {
+      document.getElementById('regs-container').innerHTML =
+        `<div class="empty-state"><i class="bi bi-wifi-off"></i><h4>Error</h4><p>${err.message}</p></div>`;
+    }
+  }
+
+  function renderRegs() {
+    const now = new Date();
+    const list = allRegs.filter(r => {
+      if (filterMode === 'UPCOMING') return r.event && new Date(r.event.dateTime) > now;
+      if (filterMode === 'PAST')     return r.event && new Date(r.event.dateTime) <= now;
+      return true;
+    });
+
+    const container = document.getElementById('regs-container');
+    if (list.length === 0) {
+      container.innerHTML = `<div class="empty-state">
+        <i class="bi bi-ticket-perforated"></i>
+        <h4>Sin inscripciones</h4>
+        <p>No tienes inscripciones ${filterMode==='UPCOMING'?'próximas':filterMode==='PAST'?'pasadas':'aún'}.</p>
+        <a href="events.html" class="btn btn-primary btn-sm" style="margin-top:12px">
+          <i class="bi bi-search"></i> Explorar Eventos
+        </a>
+      </div>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="table-wrap">
+        <table class="ep-table">
+          <thead><tr>
+            <th>Evento</th><th>Fecha</th><th>Lugar</th>
+            <th>Estado</th><th>QR</th><th>Acciones</th>
+          </tr></thead>
+          <tbody>${list.map(regRow).join('')}</tbody>
+        </table>
+      </div>`;
+  }
+
+  function regRow(r) {
+    const ev = r.event || {};
+    const upcoming = ev.dateTime && new Date(ev.dateTime) > new Date();
+    return `<tr class="animate-in">
+      <td>
+        <div style="font-weight:600;font-size:14px">${ev.title || '—'}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">ID: ${r.id}</div>
+      </td>
+      <td style="font-size:12px;color:var(--text-secondary)">${fmtDateTime(ev.dateTime)}</td>
+      <td style="font-size:12px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.location||'—'}</td>
+      <td>${eventStatusBadge(ev.status||'DRAFT')}</td>
+      <td>
+        ${r.qrToken ? `
+          <button class="btn btn-outline-accent btn-sm" onclick="showQR('${r.qrToken}','${(ev.title||'').replace(/'/g,"\\'")}')">
+            <i class="bi bi-qr-code"></i> Ver QR
+          </button>` : `<span style="color:var(--text-muted);font-size:12px">—</span>`}
+      </td>
+      <td>
+        <div class="actions">
+          ${upcoming && ev.status !== 'CANCELLED' ? `
+            <button class="btn btn-danger btn-sm btn-icon" onclick="cancelReg(${ev.id})" title="Cancelar inscripción">
+              <i class="bi bi-x-circle"></i>
+            </button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  let currentToken = null;
+  function showQR(token, eventTitle) {
+    currentToken = token;
+    openModal('modal-qr');
+    const disp = document.getElementById('qr-display');
+    disp.innerHTML = `
+      <div style="font-size:14px;font-weight:600;margin-bottom:16px">${eventTitle}</div>
+      <img src="${api.qrImageUrl(token)}" alt="QR Code"
+           style="width:200px;height:200px;border:3px solid var(--bg-overlay);border-radius:var(--radius-md);image-rendering:pixelated;background:white"
+           onerror="this.src='';this.alt='QR no disponible'"/>
+      <div class="qr-token">${token}</div>`;
+
+    document.getElementById('btn-download-qr').onclick = () => {
+      const a = document.createElement('a');
+      a.href = api.qrImageUrl(token);
+      a.download = `qr-${token.slice(0,8)}.png`;
+      a.click();
+    };
+  }
+
+  async function cancelReg(eventId) {
+    const _ok4 = await confirmDialog({ title: '¿Cancelar inscripción?', message: 'Perderás tu lugar y tu código QR quedará inválido.', type: 'warning', confirmText: 'Sí, cancelar', cancelText: 'Mantener' }); if (!_ok4) return;
+    try {
+      await api.cancelRegistration(eventId);
+      showToast('Inscripción cancelada', 'warning');
+      await loadRegs();
+    } catch(err) { showToast(err.message, 'error'); }
+  }
+
+  loadRegs();
+  </script>
+</body>
+</html>

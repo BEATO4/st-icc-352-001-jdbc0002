@@ -16,9 +16,6 @@ build/
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
-data/
-*.mv.db
-*.trace.db
 
 ### Eclipse ###
 .apt_generated

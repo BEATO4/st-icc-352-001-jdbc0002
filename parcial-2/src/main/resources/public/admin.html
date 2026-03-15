@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EventPass — Admin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+  <link rel="stylesheet" href="css/main.css"/>
+</head>
+<body style="background:var(--bg-base)">
+  <script src="js/api.js"></script>
+  <script src="js/layout.js"></script>
+  <script>
+    if (!requireAuth()) throw '';
+    if (!Auth.isAdmin()) { window.location.href = '/dashboard.html'; throw ''; }
+    buildLayout('Panel Administrador', 'Gestión completa de usuarios y eventos');
+  </script>
+
+  <script>
+  const root = document.getElementById('page-root');
+
+  root.innerHTML = `
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2>Panel Administrador</h2>
+        <p>Control total del sistema</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="loadAll()">
+          <i class="bi bi-arrow-clockwise"></i> Actualizar
+        </button>
+        <button class="btn btn-outline-accent btn-sm" onclick="exportData()">
+          <i class="bi bi-download"></i> Exportar
+        </button>
+      </div>
+    </div>
+
+    <!-- Admin stats -->
+    <div class="grid-4" style="margin-bottom:20px" id="admin-stats">
+      ${Array.from({length:4}, (_,i) => `
+        <div class="stat-card ${['stat-blue','stat-green','stat-amber','stat-purple'][i]}">
+          <div class="stat-icon"><i class="bi ${['bi-people','bi-calendar-check','bi-broadcast','bi-shield'][i]}"></i></div>
+          <div class="stat-value" id="ast-${i}">—</div>
+          <div class="stat-label">${['Total Usuarios','Total Eventos','Publicados','Admins'][i]}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Tab bar -->
+    <div style="display:flex;gap:0;margin-bottom:16px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:4px;width:fit-content">
+      <button class="btn btn-primary btn-sm" id="tab-users" onclick="switchTab('users')" style="border-radius:calc(var(--radius-md) - 2px)">
+        <i class="bi bi-people"></i> Usuarios
+      </button>
+      <button class="btn btn-ghost btn-sm" id="tab-events" onclick="switchTab('events')" style="border-radius:calc(var(--radius-md) - 2px)">
+        <i class="bi bi-calendar-event"></i> Eventos
+      </button>
+    </div>
+
+    <!-- Users panel -->
+    <div id="panel-users">
+      <div class="card-ep">
+        <div class="card-header-ep">
+          <span class="title"><i class="bi bi-people"></i> Gestión de Usuarios</span>
+          <div class="input-group" style="max-width:220px">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="user-search" placeholder="Buscar..." style="font-size:13px"/>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="ep-table">
+            <thead><tr>
+              <th>ID</th><th>Nombre</th><th>Email</th><th>Rol</th>
+              <th>Estado</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="users-tbody">${tableSkeletonRows(6)}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Events panel -->
+    <div id="panel-events" style="display:none">
+      <div class="card-ep">
+        <div class="card-header-ep">
+          <span class="title"><i class="bi bi-calendar-event"></i> Todos los Eventos</span>
+          <div class="input-group" style="max-width:220px">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="event-search" placeholder="Buscar..." style="font-size:13px"/>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="ep-table">
+            <thead><tr>
+              <th>ID</th><th>Título</th><th>Organizador</th><th>Fecha</th>
+              <th>Capacidad</th><th>Estado</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="events-tbody">${tableSkeletonRows(7)}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let allUsers  = [];
+  let allEvents = [];
+  let activeTab = 'users';
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('panel-users').style.display  = tab === 'users'  ? '' : 'none';
+    document.getElementById('panel-events').style.display = tab === 'events' ? '' : 'none';
+    document.getElementById('tab-users').className  = `btn btn-sm ${tab==='users' ?'btn-primary':'btn-ghost'} ` + 'rounded';
+    document.getElementById('tab-events').className = `btn btn-sm ${tab==='events'?'btn-primary':'btn-ghost'} ` + 'rounded';
+    document.getElementById('tab-users').style.borderRadius  = 'calc(var(--radius-md) - 2px)';
+    document.getElementById('tab-events').style.borderRadius = 'calc(var(--radius-md) - 2px)';
+  }
+
+  /* Search */
+  document.getElementById('user-search').addEventListener('input', function() {
+    renderUsers(this.value.toLowerCase());
+  });
+  document.getElementById('event-search').addEventListener('input', function() {
+    renderAdminEvents(this.value.toLowerCase());
+  });
+
+  async function loadAll() {
+    try {
+      [allUsers, allEvents] = await Promise.all([api.adminGetUsers(), api.adminGetEvents()]);
+
+      /* Stats */
+      const admins    = allUsers.filter(u => u.role === 'ADMIN').length;
+      const published = allEvents.filter(e => e.status === 'PUBLISHED').length;
+      animateCount(document.getElementById('ast-0'), allUsers.length);
+      animateCount(document.getElementById('ast-1'), allEvents.length);
+      animateCount(document.getElementById('ast-2'), published);
+      animateCount(document.getElementById('ast-3'), admins);
+
+      renderUsers();
+      renderAdminEvents();
+    } catch(err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  function renderUsers(q = '') {
+    const list = q ? allUsers.filter(u =>
+      u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)
+    ) : allUsers;
+    const tbody = document.getElementById('users-tbody');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state" style="padding:24px"><i class="bi bi-people" style="font-size:32px"></i><p>Sin usuarios</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(u => `
+      <tr class="animate-in">
+        <td><span class="mono" style="font-size:12px;color:var(--text-muted)">#${u.id}</span></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent-dim),var(--primary-dim));
+                        display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0">
+              ${(u.name||'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}
+            </div>
+            <span style="font-weight:600;font-size:13px">${u.name || '—'}</span>
+          </div>
+        </td>
+        <td style="font-size:12px;color:var(--text-secondary)">${u.email}</td>
+        <td>
+          <select class="form-select" style="width:130px;padding:4px 8px;font-size:12px"
+                  onchange="setRole(${u.id}, this.value, this)">
+            ${['PARTICIPANT','ORGANIZER','ADMIN'].map(r =>
+              `<option value="${r}" ${u.role===r?'selected':''}>${r}</option>`
+            ).join('')}
+          </select>
+        </td>
+        <td>
+          ${u.blocked
+            ? `<span class="badge badge-red"><i class="bi bi-lock"></i> Bloqueado</span>`
+            : `<span class="badge badge-green"><i class="bi bi-check-circle"></i> Activo</span>`}
+        </td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-sm btn-icon ${u.blocked?'btn-outline-accent':'btn-secondary'}"
+                    onclick="toggleBlock(${u.id}, ${!u.blocked})"
+                    title="${u.blocked?'Desbloquear':'Bloquear'}">
+              <i class="bi bi-${u.blocked?'unlock':'lock'}"></i>
+            </button>
+            <button class="btn btn-danger btn-sm btn-icon" onclick="deleteUser(${u.id})" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  function renderAdminEvents(q = '') {
+    const list = q ? allEvents.filter(e =>
+      e.title?.toLowerCase().includes(q) || e.location?.toLowerCase().includes(q)
+    ) : allEvents;
+    const tbody = document.getElementById('events-tbody');
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state" style="padding:24px"><i class="bi bi-calendar-x" style="font-size:32px"></i><p>Sin eventos</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(e => `
+      <tr class="animate-in">
+        <td><span class="mono" style="font-size:12px;color:var(--text-muted)">#${e.id}</span></td>
+        <td>
+          <div style="font-weight:600;font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.title}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${e.location}</div>
+        </td>
+        <td style="font-size:12px;color:var(--text-secondary)">${e.organizer?.name || e.organizer?.email || '—'}</td>
+        <td style="font-size:12px">${fmtDate(e.dateTime)}</td>
+        <td style="font-size:12px">${e.maxCapacity}</td>
+        <td>${eventStatusBadge(e.status)}</td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-danger btn-sm btn-icon" onclick="deleteEvent(${e.id})" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  /* ── Actions ── */
+  async function setRole(userId, role, sel) {
+    try {
+      await api.adminSetRole(userId, role);
+      showToast(`Rol actualizado a ${role}`, 'success');
+      const user = allUsers.find(u => u.id === userId);
+      if (user) user.role = role;
+    } catch(err) {
+      showToast(err.message, 'error');
+      await loadAll(); /* Revert */
+    }
+  }
+
+  async function toggleBlock(userId, blocked) {
+    try {
+      await api.adminBlockUser(userId, blocked);
+      showToast(blocked ? 'Usuario bloqueado' : 'Usuario desbloqueado', blocked ? 'warning' : 'success');
+      const user = allUsers.find(u => u.id === userId);
+      if (user) user.blocked = blocked;
+      renderUsers(document.getElementById('user-search').value.toLowerCase());
+    } catch(err) { showToast(err.message, 'error'); }
+  }
+
+  async function deleteUser(userId) {
+    const _ok2 = await confirmDialog({ title: '¿Eliminar usuario?', message: 'Esta acción es permanente e irreversible.', type: 'danger', confirmText: 'Eliminar', cancelText: 'Cancelar' }); if (!_ok2) return;
+    try {
+      await api.adminDeleteUser(userId);
+      showToast('Usuario eliminado', 'warning');
+      allUsers = allUsers.filter(u => u.id !== userId);
+      renderUsers();
+    } catch(err) { showToast(err.message, 'error'); }
+  }
+
+  async function deleteEvent(eventId) {
+    const _ok3 = await confirmDialog({ title: '¿Eliminar evento?', message: 'Esta acción es permanente e irreversible.', type: 'danger', confirmText: 'Eliminar', cancelText: 'Cancelar' }); if (!_ok3) return;
+    try {
+      await api.adminDeleteEvent(eventId);
+      showToast('Evento eliminado', 'warning');
+      allEvents = allEvents.filter(e => e.id !== eventId);
+      renderAdminEvents();
+    } catch(err) { showToast(err.message, 'error'); }
+  }
+
+  function exportData() {
+    const userRows = [
+      ['ID','Nombre','Email','Rol','Bloqueado'],
+      ...allUsers.map(u => [u.id, u.name, u.email, u.role, u.blocked ? 'Sí' : 'No'])
+    ];
+    downloadCSV(userRows, 'usuarios_eventpass.csv');
+    showToast('CSV de usuarios descargado', 'success');
+  }
+
+  loadAll();
+  </script>
+</body>
+</html>
