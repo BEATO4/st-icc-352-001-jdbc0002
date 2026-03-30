@@ -1,0 +1,32 @@
+services:
+  app:
+    build: .
+    container_name: blog-practica5-app
+    environment:
+      DB_VENDOR: postgres
+      DB_URL: jdbc:postgresql://db:5432/blogdb
+      DB_USER: blog
+      DB_PASSWORD: blog
+      JDBC_DATABASE_URL: jdbc:postgresql://blog:blog@db:5432/blogdb
+      HIBERNATE_DDL_AUTO: update
+      HIBERNATE_SHOW_SQL: "false"
+    ports:
+      - "7000:7000"
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    container_name: blog-practica5-db
+    environment:
+      POSTGRES_DB: blogdb
+      POSTGRES_USER: blog
+      POSTGRES_PASSWORD: blog
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+
