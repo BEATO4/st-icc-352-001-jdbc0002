@@ -1,0 +1,97 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.google.protobuf' version '0.9.5'
+}
+
+group = 'edu.pucmm.icc352'
+version = '1.0-SNAPSHOT'
+
+application {
+    mainClass = 'edu.pucmm.icc352.backend.Main'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // ── Dependencias de módulos internos ──────────────────────────
+    implementation project(':db')
+    implementation project(':cliente-grpc')
+    implementation project(':cliente-rest')
+
+    // ── Servidor web ──────────────────────────────────────────────
+    implementation "io.javalin:javalin-bundle:7.0.1"
+
+    // ── MongoDB ───────────────────────────────────────────────────
+    implementation "org.mongodb:mongodb-driver-sync:5.4.0"
+
+    // ── JSON ──────────────────────────────────────────────────────
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.19.0"
+
+    // ── JWT ───────────────────────────────────────────────────────
+    implementation "io.jsonwebtoken:jjwt-api:0.13.0"
+    runtimeOnly    "io.jsonwebtoken:jjwt-impl:0.13.0"
+    runtimeOnly    "io.jsonwebtoken:jjwt-jackson:0.13.0"
+
+    // ── BCrypt (hash de contraseñas) ──────────────────────────────
+    implementation "at.favre.lib:bcrypt:0.10.2"
+
+    // ── gRPC ──────────────────────────────────────────────────────
+    runtimeOnly    "io.grpc:grpc-netty-shaded:1.80.0"
+    implementation "io.grpc:grpc-protobuf:1.80.0"
+    implementation "io.grpc:grpc-stub:1.80.0"
+    compileOnly    "org.apache.tomcat:annotations-api:6.0.53"
+
+    // ── Protobuf ──────────────────────────────────────────────────
+    implementation "com.google.protobuf:protobuf-java:4.34.1"
+
+    // ── Logging ───────────────────────────────────────────────────
+    // slf4j-simple ya viene con javalin-bundle, pero lo dejamos explícito
+    implementation "org.slf4j:slf4j-simple:2.0.17"
+
+
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.8"
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:1.80.0"
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins.create("grpc")
+        }
+    }
+}
+
+sourceSets {
+    main {
+        proto.srcDirs = ['src/main/proto']
+        resources.srcDirs = ['src/main/resources']
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'edu.pucmm.icc352.Main'
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}

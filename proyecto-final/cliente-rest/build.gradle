@@ -1,0 +1,31 @@
+plugins {
+    id 'java'
+}
+
+group = 'edu.pucmm.icc352'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // ── Servidor web ──────────────────────────────────────────────
+    implementation "io.javalin:javalin-bundle:7.0.1"
+
+    // ── JSON ──────────────────────────────────────────────────────
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.19.0"
+
+    // ── Logging ───────────────────────────────────────────────────
+    implementation "org.slf4j:slf4j-simple:2.0.17"
+
+    // ── Testing ───────────────────────────────────────────────────
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
