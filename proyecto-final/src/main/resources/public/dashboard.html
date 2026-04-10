@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FieldForm — Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { display: flex; flex-direction: column; }
+
+    .dash-content { display: flex; flex-direction: column; }
+
+    .dash-header {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      margin-bottom: 24px; gap: 12px;
+    }
+    .dash-title { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 500; line-height: 1.1; }
+    .dash-subtitle { font-size: 13px; color: var(--ink-ghost); margin-top: 4px; }
+
+    /* Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px;
+    }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--ink-ghost); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+    .stat-value { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 700; line-height: 1; }
+    .stat-value.clay  { color: var(--clay); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.amber { color: var(--amber); }
+
+    /* Survey list */
+    .section-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-ghost); margin-bottom: 10px;
+    }
+    .survey-list { display: flex; flex-direction: column; gap: 8px; }
+    .survey-item {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px 18px;
+      display: flex; align-items: center; gap: 14px;
+      transition: all var(--transition); cursor: default;
+    }
+    .survey-item:hover { border-color: rgba(196,98,45,0.3); box-shadow: var(--shadow-sm); }
+
+    .survey-avatar {
+      width: 40px; height: 40px; border-radius: var(--radius-md);
+      background: var(--clay-pale); display: flex; align-items: center; justify-content: center;
+      font-family: 'Fraunces', serif; font-size: 15px; font-weight: 700; color: var(--clay);
+      flex-shrink: 0; text-transform: uppercase;
+    }
+    .survey-avatar.pending { background: var(--amber-pale); color: var(--amber); }
+    .survey-avatar.local   { background: var(--parch-2);    color: var(--ink-soft); }
+
+    .survey-body  { flex: 1; min-width: 0; }
+    .survey-name  { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .survey-meta  { font-size: 12px; color: var(--ink-ghost); margin-top: 3px; }
+    .survey-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .survey-date  { font-size: 11px; color: var(--ink-ghost); }
+
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      border: 1.5px dashed var(--border); border-radius: var(--radius-xl);
+    }
+    .empty-icon  { font-size: 38px; margin-bottom: 12px; opacity: 0.4; }
+    .empty-title { font-family: 'Fraunces', serif; font-size: 20px; color: var(--ink-soft); margin-bottom: 6px; }
+    .empty-text  { font-size: 13px; color: var(--ink-ghost); }
+
+    @media (max-width: 480px) {
+      .dash-header { flex-direction: column; align-items: flex-start; }
+      .btn-clay    { align-self: stretch; justify-content: center; }
+      .stats-row   { gap: 8px; }
+      .stat-value  { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="top-bar">
+  <div class="top-bar-brand" onclick="window.location.href='/dashboard.html'">
+    <div class="top-bar-brand-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+    </div>
+    <span class="top-bar-brand-name">FieldForm</span>
+  </div>
+  <div class="top-bar-right">
+    <div class="sync-pill" id="sync-pill"><div class="sync-dot"></div><span id="sync-text">Online</span></div>
+    <div class="avatar-btn" id="avatar-btn">–</div>
+    <div class="user-menu" id="user-menu">
+      <div class="user-menu-header">
+        <div class="user-menu-name" id="menu-name">–</div>
+        <div class="user-menu-role" id="menu-role">–</div>
+      </div>
+      <div class="user-menu-item" onclick="window.location.href='/form.html'">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        New Survey
+      </div>
+      <div class="user-menu-item danger" onclick="logout()">
+        <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        Sign Out
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page-content dash-content">
+  <div class="dash-header">
+    <div>
+      <div class="dash-title">My Surveys</div>
+      <div class="dash-subtitle" id="dash-greeting">Loading…</div>
+    </div>
+    <button class="btn-clay" onclick="window.location.href='/form.html'">
+      <svg viewBox="0 0 24 24"><path d="M19 13H13v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      New Survey
+    </button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Total</div>  <div class="stat-value clay"  id="stat-total">0</div></div>
+    <div class="stat-card"><div class="stat-label">Synced</div> <div class="stat-value green" id="stat-synced">0</div></div>
+    <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value amber" id="stat-pending">0</div></div>
+  </div>
+
+  <div class="offline-banner" id="offline-banner">
+    <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+    <span><strong id="pending-count">0</strong> forms queued offline — will sync when reconnected</span>
+    <button class="btn-sync" onclick="syncNow()">Sync now</button>
+  </div>
+
+  <div class="section-label">Recent Records</div>
+  <div class="survey-list" id="survey-list"></div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/js/storage.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script>
+  const user = requireAuth();
+  initUserMenu();
+  initSyncPill();
+
+  document.getElementById('dash-greeting').textContent = greeting(user.username);
+
+  const EDU = { PRIMARY:'Primary', SECONDARY:'Secondary', UNIVERSITY_DEGREE:'University', POSTGRADUATE:'Postgraduate', DOCTORAL:'Doctoral' };
+
+  function render() {
+    const surveys = Storage.loadSurveys().filter(s => s.userId === user.username);
+    const synced  = surveys.filter(s => s.status === 'synced').length;
+    const pending = surveys.filter(s => s.status !== 'synced').length;
+
+    document.getElementById('stat-total').textContent   = surveys.length;
+    document.getElementById('stat-synced').textContent  = synced;
+    document.getElementById('stat-pending').textContent = pending;
+
+    const pendingQ = surveys.filter(s => s.status === 'pending').length;
+    const banner   = document.getElementById('offline-banner');
+    banner.classList.toggle('visible', pendingQ > 0);
+    document.getElementById('pending-count').textContent = pendingQ;
+
+    const list = document.getElementById('survey-list');
+    if (!surveys.length) {
+      list.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-title">No surveys yet</div>
+        <div class="empty-text">Tap "New Survey" to start your first field record</div>
+      </div>`;
+      return;
+    }
+
+    list.innerHTML = surveys.map(s => {
+      const initials   = (s.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      const dateStr    = new Date(s.createdAt).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
+      const badgeClass = s.status === 'synced' ? 'synced' : s.status === 'pending' ? 'pending' : 'local';
+      const badgeText  = s.status === 'synced' ? 'Synced' : s.status === 'pending' ? 'Pending sync' : 'Draft';
+      const avatarCls  = 'survey-avatar ' + (s.status !== 'synced' ? s.status : '');
+      return `<div class="survey-item">
+        <div class="${avatarCls}">${initials}</div>
+        <div class="survey-body">
+          <div class="survey-name">${s.name || 'Unnamed'}</div>
+          <div class="survey-meta">${s.sector || '—'} · ${EDU[s.educationalLevel] || '—'}</div>
+        </div>
+        <div class="survey-right">
+          <span class="badge ${badgeClass}">${badgeText}</span>
+          <span class="survey-date">${dateStr}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function syncNow() {
+    if (!navigator.onLine) { toast('Still offline — connect to internet first'); return; }
+    const result = await API.syncQueue();
+    toast(result.synced > 0 ? `${result.synced} survey(s) synced!` : 'Nothing to sync');
+    render();
+  }
+
+  window.addEventListener('online',  render);
+  window.addEventListener('offline', render);
+
+  render();
+</script>
+</body>
+</html>

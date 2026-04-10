@@ -1,0 +1,93 @@
+/**
+ * api.js — Wrappers around the FieldForm REST API.
+ * All methods return { ok: true, data } or { ok: false, message, status }.
+ */
+
+const API = (() => {
+  const BASE = '/api';
+
+  function token() {
+    const user = Storage.loadUser();
+    return user?.token || null;
+  }
+
+  function authHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      ...(token() ? { Authorization: `Bearer ${token()}` } : {}),
+    };
+  }
+
+  async function request(method, path, body) {
+    let res;
+    try {
+      res = await fetch(BASE + path, {
+        method,
+        headers: authHeaders(),
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    } catch (networkErr) {
+      // fetch() itself threw — server is unreachable
+      console.error('[API] Network error on', method, path, networkErr);
+      return { ok: false, status: 0, message: 'Could not reach the server. Check it is running on port 8080.' };
+    }
+
+    // Parse body — guard against non-JSON responses (HTML error pages, etc.)
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      const text = await res.text().catch(() => '');
+      console.error('[API] Non-JSON response', res.status, text.slice(0, 300));
+      return { ok: false, status: res.status, message: `Server error ${res.status} — check the server console.` };
+    }
+
+    if (!res.ok) {
+      console.warn('[API]', method, path, '→', res.status, data);
+      return { ok: false, status: res.status, message: data.message || `Request failed (${res.status})` };
+    }
+
+    return { ok: true, status: res.status, data };
+  }
+
+  /* ── AUTH ──────────────────────────────── */
+  const auth = {
+    register: (username, password, role) =>
+        request('POST', '/auth/register', { username, password, role }),
+
+    login: (username, password) =>
+        request('POST', '/auth/login', { username, password }),
+
+    me: () => request('GET', '/auth/me'),
+  };
+
+  /* ── SURVEYS ───────────────────────────── */
+  const surveys = {
+    getAll:    ()             => request('GET',    '/surveys'),
+    getById:   (id)           => request('GET',    `/surveys/${id}`),
+    create:    (payload)      => request('POST',   '/surveys', payload),
+    update:    (id, payload)  => request('PUT',    `/surveys/${id}`, payload),
+    delete:    (id)           => request('DELETE', `/surveys/${id}`),
+  };
+
+  /* ── SYNC ──────────────────────────────── */
+  async function syncQueue() {
+    const queue = Storage.getPendingQueue();
+    if (!queue.length) return { synced: 0, failed: 0 };
+
+    let synced = 0, failed = 0;
+    for (const record of queue) {
+      const { id, status, ...payload } = record;
+      const res = await surveys.create(payload);
+      if (res.ok) {
+        Storage.updateSurvey(id, { status: 'synced', serverId: res.data?.form?.id });
+        synced++;
+      } else {
+        failed++;
+      }
+    }
+    return { synced, failed };
+  }
+
+  return { auth, surveys, syncQueue };
+})();

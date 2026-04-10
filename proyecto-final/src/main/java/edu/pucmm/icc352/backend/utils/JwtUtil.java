@@ -2,55 +2,62 @@ package edu.pucmm.icc352.backend.utils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
- * Utility class for JWT token generation and validation
+ * Utility class for JWT token generation and validation.
+ * Written for jjwt 0.12 / 0.13 — the parserBuilder() API was removed in 0.12.
  */
 public class JwtUtil {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
 
-    // Generate a secure key for HS256
-    private static final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    // Hmac-SHA256 key — generated once per JVM lifetime.
+    // In production load this from an environment variable so tokens survive restarts.
+    // Keys.secretKeyFor(SignatureAlgorithm.HS256) was removed in 0.12;
+    // use Jwts.SIG.HS256.key().build() instead.
+    private static final SecretKey SECRET_KEY = Jwts.SIG.HS256.key().build();
 
     // Token validity: 24 hours
-    private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 24;
+    private static final long EXPIRATION_TIME = 1000L * 60 * 60 * 24;
+
+    // ── GENERATE ──────────────────────────────────────────────────────────────
 
     /**
-     * Generate JWT token for a user
+     * Generate a signed JWT for a user.
+     * Claims: userId, username, role — subject is set to username.
      */
     public static String generateToken(String userId, String username, String role) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("username", username);
-        claims.put("role", role);
-
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(username)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                // jjwt 0.12: use claims() builder instead of setClaims(map)
+                .claims()
+                .add("userId",   userId)
+                .add("username", username)
+                .add("role",     role)
+                .subject(username)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .and()
                 .signWith(SECRET_KEY)
                 .compact();
     }
 
+    // ── VALIDATE ──────────────────────────────────────────────────────────────
+
     /**
-     * Validate JWT token
+     * Returns true if the token has a valid signature and is not expired.
      */
     public static boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder()
-                    .setSigningKey(SECRET_KEY)
+            // jjwt 0.12: Jwts.parser() + verifyWith() + parseSignedClaims()
+            Jwts.parser()
+                    .verifyWith(SECRET_KEY)
                     .build()
-                    .parseClaimsJws(token);
+                    .parseSignedClaims(token);
             return true;
         } catch (Exception e) {
             logger.error("Invalid JWT token: {}", e.getMessage());
@@ -58,48 +65,44 @@ public class JwtUtil {
         }
     }
 
+    // ── EXTRACT ───────────────────────────────────────────────────────────────
+
     /**
-     * Extract all claims from token
+     * Parse and return the Claims payload.
+     * Returns null if the token is invalid or expired.
      */
     public static Claims extractClaims(String token) {
         try {
-            return Jwts.parserBuilder()
-                    .setSigningKey(SECRET_KEY)
+            // jjwt 0.12: getPayload() replaces getBody()
+            return Jwts.parser()
+                    .verifyWith(SECRET_KEY)
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+                    .parseSignedClaims(token)
+                    .getPayload();
         } catch (Exception e) {
             logger.error("Error extracting claims from token: {}", e.getMessage());
             return null;
         }
     }
 
-    /**
-     * Extract username from token
-     */
     public static String extractUsername(String token) {
         Claims claims = extractClaims(token);
         return claims != null ? claims.getSubject() : null;
     }
 
-    /**
-     * Extract user ID from token
-     */
     public static String extractUserId(String token) {
         Claims claims = extractClaims(token);
         return claims != null ? claims.get("userId", String.class) : null;
     }
 
-    /**
-     * Extract role from token
-     */
     public static String extractRole(String token) {
         Claims claims = extractClaims(token);
         return claims != null ? claims.get("role", String.class) : null;
     }
 
     /**
-     * Check if token is expired
+     * Returns true if the token's expiration timestamp is in the past.
+     * Also returns true if the token cannot be parsed at all.
      */
     public static boolean isTokenExpired(String token) {
         Claims claims = extractClaims(token);

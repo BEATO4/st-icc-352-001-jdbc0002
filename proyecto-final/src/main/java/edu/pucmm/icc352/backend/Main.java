@@ -4,6 +4,7 @@ import edu.pucmm.icc352.backend.controllers.AuthController;
 import edu.pucmm.icc352.backend.controllers.SurveyFormController;
 import edu.pucmm.icc352.backend.middleware.JwtAuthFilter;
 import io.javalin.Javalin;
+import io.javalin.http.staticfiles.Location;
 import io.javalin.json.JavalinJackson;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -45,6 +46,13 @@ public class Main {
             );
 
             config.bundledPlugins.enableRouteOverview("/api/routes");
+
+            // Serve frontend — explicit form avoids any ambiguity about directory vs hostedPath
+            config.staticFiles.add(staticFiles -> {
+                staticFiles.hostedPath = "/";
+                staticFiles.directory  = "/public";
+                staticFiles.location   = Location.CLASSPATH;
+            });
 
             // ── Routes ────────────────────────────────────────────────────────
             // In Javalin 7 routes are registered directly on config.routes —

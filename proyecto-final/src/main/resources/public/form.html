@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FieldForm — New Survey</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { display: flex; flex-direction: column; }
+
+    /* Slim secondary top bar */
+    .form-top-bar {
+      background: var(--white); border-bottom: 1px solid var(--border);
+      padding: 0 20px; height: 56px; display: flex; align-items: center;
+      gap: 14px; position: sticky; top: 0; z-index: 10;
+    }
+    .form-top-title { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 500; }
+
+    /* Progress */
+    .progress-wrap { margin-bottom: 28px; }
+    .progress-label {
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: var(--ink-ghost); margin-bottom: 8px;
+    }
+    .progress-track { height: 4px; background: var(--parch-2); border-radius: 999px; overflow: hidden; }
+    .progress-fill  {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--clay), #E8845A);
+      transition: width 0.4s ease; width: 0%;
+    }
+
+    /* Draft saved indicator */
+    .save-indicator {
+      display: none; align-items: center; gap: 8px; padding: 10px 14px;
+      background: var(--green-pale); border-radius: var(--radius-md);
+      font-size: 13px; color: var(--green); margin-bottom: 16px;
+    }
+    .save-indicator.visible { display: flex; }
+    .save-indicator svg { width: 15px; height: 15px; fill: currentColor; flex-shrink: 0; }
+
+    /* Geo */
+    .geo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .geo-btn {
+      grid-column: 1 / -1; padding: 10px; font-family: 'Syne', sans-serif;
+      font-size: 13px; font-weight: 600; color: var(--ink-soft);
+      background: var(--parch); border: 1.5px dashed var(--border);
+      border-radius: var(--radius-md); cursor: pointer;
+      transition: all var(--transition); display: flex; align-items: center;
+      justify-content: center; gap: 7px;
+    }
+    .geo-btn:hover   { border-color: var(--clay); color: var(--clay); background: var(--clay-pale); }
+    .geo-btn.located { color: var(--green); border-color: var(--green); background: var(--green-pale); border-style: solid; }
+    .geo-btn svg { width: 15px; height: 15px; fill: currentColor; }
+
+    /* Photo */
+    .photo-upload {
+      border: 1.5px dashed var(--border); border-radius: var(--radius-md);
+      padding: 28px 20px; text-align: center; cursor: pointer;
+      transition: all var(--transition); position: relative;
+    }
+    .photo-upload:hover { border-color: var(--clay); background: var(--clay-pale); }
+    .photo-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .photo-upload-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.5; }
+    .photo-upload-text { font-size: 13px; color: var(--ink-ghost); }
+    .photo-preview {
+      display: none; margin-top: 12px; border-radius: var(--radius-md);
+      overflow: hidden; max-height: 180px; position: relative;
+    }
+    .photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-remove {
+      position: absolute; top: 6px; right: 6px; width: 26px; height: 26px;
+      background: rgba(0,0,0,0.5); border-radius: 50%; border: none;
+      color: white; font-size: 14px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+    }
+
+    /* Submit row */
+    .submit-row { display: flex; gap: 12px; padding-top: 8px; }
+    .btn-submit {
+      flex: 2; padding: 13px; font-family: 'Syne', sans-serif; font-size: 15px;
+      font-weight: 600; color: var(--white); background: var(--clay);
+      border: none; border-radius: var(--radius-md); cursor: pointer;
+      transition: all var(--transition); display: flex; align-items: center;
+      justify-content: center; gap: 8px;
+    }
+    .btn-submit:hover { filter: brightness(1.07); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit svg { width: 16px; height: 16px; fill: currentColor; }
+
+    @media (max-width: 480px) {
+      .geo-grid    { grid-template-columns: 1fr; }
+      .submit-row  { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Form-specific slim top bar -->
+<div class="form-top-bar">
+  <button class="btn-back" onclick="window.history.back()">
+    <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <div class="form-top-title">New Survey</div>
+</div>
+
+<div class="page-content narrow">
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>Form completion</span><span id="prog-pct">0%</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="prog-bar"></div></div>
+  </div>
+
+  <div class="save-indicator" id="save-indicator">
+    <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+    Draft saved to your device
+  </div>
+
+  <!-- SECTION 1 — Personal Info -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon clay">
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      </div>
+      <div>
+        <div class="card-title">Personal Information</div>
+        <div class="card-desc">Respondent details</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Full Name <span style="color:var(--clay)">*</span></label>
+      <input type="text" id="f-name" placeholder="e.g. María García" oninput="updateProgress()" autocomplete="off">
+    </div>
+    <div class="field-grid">
+      <div class="field">
+        <label>Sector <span style="color:var(--clay)">*</span></label>
+        <input type="text" id="f-sector" placeholder="e.g. Villa Mella" oninput="updateProgress()">
+      </div>
+      <div class="field">
+        <label>Education Level <span style="color:var(--clay)">*</span></label>
+        <select id="f-edu" onchange="updateProgress()">
+          <option value="">Select level…</option>
+          <option value="PRIMARY">Primary</option>
+          <option value="SECONDARY">Secondary</option>
+          <option value="UNIVERSITY_DEGREE">University</option>
+          <option value="POSTGRADUATE">Postgraduate</option>
+          <option value="DOCTORAL">Doctoral</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2 — Geolocation -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon ink">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      </div>
+      <div>
+        <div class="card-title">Geolocation</div>
+        <div class="card-desc">GPS coordinates (optional)</div>
+      </div>
+    </div>
+    <div class="geo-grid">
+      <div class="field" style="margin-bottom:0">
+        <label>Latitude</label>
+        <input type="number" id="f-lat" placeholder="18.4861" step="any">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Longitude</label>
+        <input type="number" id="f-lng" placeholder="-69.9312" step="any">
+      </div>
+      <button class="geo-btn" id="geo-btn" onclick="getLocation()">
+        <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06z"/></svg>
+        Use my current location
+      </button>
+    </div>
+  </div>
+
+  <!-- SECTION 3 — Photo -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon green">
+        <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+      </div>
+      <div>
+        <div class="card-title">Photo Documentation</div>
+        <div class="card-desc">Optional — stored on device</div>
+      </div>
+    </div>
+    <div class="photo-upload" id="photo-upload-area">
+      <input type="file" id="f-photo" accept="image/*" capture="environment" onchange="handlePhoto(event)">
+      <div class="photo-upload-icon">📷</div>
+      <div class="photo-upload-text">Tap to take a photo or choose an image</div>
+    </div>
+    <div class="photo-preview" id="photo-preview">
+      <img id="photo-img" src="" alt="Preview">
+      <button class="photo-remove" onclick="removePhoto()">✕</button>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <div class="submit-row">
+    <button class="btn-secondary" onclick="saveDraft()">Save Draft</button>
+    <button class="btn-submit"    onclick="submitForm()">
+      <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      Submit Survey
+    </button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/js/storage.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script>
+  const user = requireAuth();
+  let photoData = null;
+
+  /* ── PROGRESS BAR ──────────────────────── */
+  function updateProgress() {
+    const fields = [
+      document.getElementById('f-name').value.trim(),
+      document.getElementById('f-sector').value.trim(),
+      document.getElementById('f-edu').value,
+    ];
+    const pct = Math.round((fields.filter(Boolean).length / fields.length) * 100);
+    document.getElementById('prog-bar').style.width = pct + '%';
+    document.getElementById('prog-pct').textContent = pct + '%';
+  }
+
+  /* ── GEOLOCATION ───────────────────────── */
+  function getLocation() {
+    if (!navigator.geolocation) { toast('Geolocation not supported'); return; }
+    const btn = document.getElementById('geo-btn');
+    btn.textContent = 'Getting location…';
+    navigator.geolocation.getCurrentPosition(
+            pos => {
+              document.getElementById('f-lat').value = pos.coords.latitude.toFixed(6);
+              document.getElementById('f-lng').value = pos.coords.longitude.toFixed(6);
+              btn.className = 'geo-btn located';
+              btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Location captured';
+              toast('Location set');
+            },
+            () => {
+              btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06z"/></svg>Use my current location';
+              toast('Could not get location');
+            }
+    );
+  }
+
+  /* ── PHOTO ─────────────────────────────── */
+  function handlePhoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = e => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    }).then(data => {
+      photoData = data;
+      document.getElementById('photo-img').src = data;
+      document.getElementById('photo-preview').style.display = 'block';
+      document.getElementById('photo-upload-area').style.display = 'none';
+    });
+  }
+
+  function removePhoto() {
+    photoData = null;
+    document.getElementById('photo-preview').style.display = 'none';
+    document.getElementById('photo-upload-area').style.display = 'block';
+    document.getElementById('f-photo').value = '';
+  }
+
+  /* ── BUILD PAYLOAD ─────────────────────── */
+  function buildPayload() {
+    return {
+      id:               'local-' + Date.now(),
+      name:             document.getElementById('f-name').value.trim(),
+      sector:           document.getElementById('f-sector').value.trim(),
+      educationalLevel: document.getElementById('f-edu').value,
+      latitude:         parseFloat(document.getElementById('f-lat').value) || null,
+      longitude:        parseFloat(document.getElementById('f-lng').value) || null,
+      photoBase64:      photoData,
+      userId:           user.username,
+      username:         user.username,
+      createdAt:        new Date().toISOString(),
+    };
+  }
+
+  /* ── SAVE DRAFT ────────────────────────── */
+  function saveDraft() {
+    if (!document.getElementById('f-name').value.trim()) { toast('Enter at least a name to save a draft'); return; }
+    Storage.addSurvey({ ...buildPayload(), status: 'local' });
+    document.getElementById('save-indicator').classList.add('visible');
+    toast('Draft saved to device');
+  }
+
+  /* ── SUBMIT ────────────────────────────── */
+  async function submitForm() {
+    const name   = document.getElementById('f-name').value.trim();
+    const sector = document.getElementById('f-sector').value.trim();
+    const edu    = document.getElementById('f-edu').value;
+    if (!name || !sector || !edu) { toast('Please fill in all required fields'); return; }
+
+    const payload = buildPayload();
+
+    if (navigator.onLine) {
+      const res = await API.surveys.create(payload);
+      if (res.ok) {
+        toast('Survey submitted!');
+        window.location.href = '/dashboard.html';
+        return;
+      }
+      // API failed even though online → fall through to offline queue
+    }
+
+    // Offline or API error: queue locally
+    Storage.addSurvey({ ...payload, status: 'pending' });
+    toast('Saved offline — will sync when connected');
+    window.location.href = '/dashboard.html';
+  }
+</script>
+</body>
+</html>

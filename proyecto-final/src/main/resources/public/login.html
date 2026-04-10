@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FieldForm — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=Syne:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--ink:#14213D;--ink-soft:#3D4F6B;--ink-ghost:#8393A8;--clay:#C4622D;--clay-pale:#F5E8DF;--parch:#F8F4EE;--white:#FFFFFF;--red:#B5291A;--red-pale:#FDECEA;--border:rgba(20,33,61,.12);--radius-md:10px;--radius-xl:24px;--shadow-lg:0 8px 40px rgba(20,33,61,.14);--t:.22s cubic-bezier(.4,0,.2,1)}
+    html{font-size:16px;-webkit-font-smoothing:antialiased}
+    body{font-family:'Syne',sans-serif;background:var(--parch);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;animation:fi .3s ease both}
+    @keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .topo{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+    .topo svg{width:100%;height:100%;opacity:.045}
+    .topo-glow{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(196,98,45,.07) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 90%,rgba(20,33,61,.05) 0%,transparent 50%)}
+    .card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow-lg);width:100%;max-width:420px;padding:40px 36px;position:relative;z-index:1}
+    .logo{display:flex;align-items:center;gap:10px;margin-bottom:32px}
+    .logo-icon{width:38px;height:38px;background:var(--ink);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .logo-icon svg{width:20px;height:20px;fill:var(--clay)}
+    .logo-name{font-family:'Fraunces',serif;font-size:22px;font-weight:700}
+    .logo-sub{font-size:12px;color:var(--ink-ghost);letter-spacing:.06em;text-transform:uppercase;margin-top:1px}
+    .tabs{display:flex;background:var(--parch);border-radius:var(--radius-md);padding:4px;margin-bottom:28px;gap:4px}
+    .tab{flex:1;padding:9px;text-align:center;font-size:13px;font-weight:600;color:var(--ink-ghost);cursor:pointer;border-radius:6px;transition:all var(--t);border:none;background:transparent;font-family:'Syne',sans-serif}
+    .tab.active{background:var(--white);color:var(--ink);box-shadow:0 1px 6px rgba(20,33,61,.10)}
+    .panel{display:none}.panel.active{display:block}
+    .field{margin-bottom:18px}
+    .field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+    .field input,.field select{width:100%;padding:11px 14px;font-family:'Syne',sans-serif;font-size:15px;color:var(--ink);background:var(--parch);border:1.5px solid var(--border);border-radius:var(--radius-md);outline:none;appearance:none;transition:border-color var(--t),background var(--t)}
+    .field input:focus,.field select:focus{border-color:var(--clay);background:var(--white)}
+    .field input::placeholder{color:var(--ink-ghost)}
+    .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238393A8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
+    .btn{width:100%;padding:13px;font-family:'Syne',sans-serif;font-size:15px;font-weight:600;color:var(--white);background:var(--ink);border:none;border-radius:var(--radius-md);cursor:pointer;transition:all var(--t)}
+    .btn:hover:not(:disabled){background:var(--clay);transform:translateY(-1px)}
+    .btn:disabled{opacity:.65;cursor:not-allowed}
+    .err{background:var(--red-pale);color:var(--red);border-radius:var(--radius-md);padding:10px 14px;font-size:13px;margin-bottom:16px;display:none}
+    .err.on{display:block}
+    .hint{text-align:center;font-size:12px;color:var(--ink-ghost);margin-top:16px}
+    .hint a{color:var(--clay);text-decoration:none}
+    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;font-size:14px;padding:10px 20px;border-radius:999px;z-index:1000;transition:transform .3s ease;white-space:nowrap}
+    #toast.show{transform:translateX(-50%) translateY(0)}
+    @media(max-width:480px){.card{padding:28px 20px}}
+  </style>
+</head>
+<body>
+<div class="topo-glow"></div>
+<div class="topo">
+  <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,180 Q200,140 400,200 T800,160 T1200,190 T1440,150" stroke="#14213D" stroke-width="1.5" fill="none"/>
+    <path d="M0,260 Q200,220 400,280 T800,240 T1200,270 T1440,230" stroke="#14213D" stroke-width=".8" fill="none"/>
+    <path d="M0,500 Q300,440 600,520 T1100,480 T1440,510" stroke="#14213D" stroke-width="1.5" fill="none"/>
+    <path d="M0,650 Q250,620 500,660 T900,630 T1200,655 T1440,640" stroke="#14213D" stroke-width="1.4" fill="none"/>
+  </svg>
+</div>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+    <div><div class="logo-name">FieldForm</div><div class="logo-sub">Survey Collection</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" id="tab-login"    onclick="switchTab('login')">Sign In</button>
+    <button class="tab"        id="tab-register" onclick="switchTab('register')">Register</button>
+  </div>
+  <div id="err" class="err"></div>
+  <div id="panel-login" class="panel active">
+    <div class="field"><label>Username</label><input type="text" id="lu" placeholder="Enter your username" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input type="password" id="lp" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn" id="btn-login" onclick="doLogin()">Sign In</button>
+    <p class="hint">No account? <a href="#" onclick="switchTab('register');return false;">Register here</a></p>
+  </div>
+  <div id="panel-register" class="panel">
+    <div class="field"><label>Username</label><input type="text" id="ru" placeholder="Choose a username"></div>
+    <div class="field"><label>Password</label><input type="password" id="rp" placeholder="Min. 6 characters"></div>
+    <div class="field"><label>Role</label><select id="rr"><option value="USER">Field Surveyor</option><option value="ADMIN">Administrator</option></select></div>
+    <button class="btn" id="btn-register" onclick="doRegister()">Create Account</button>
+    <p class="hint">Already registered? <a href="#" onclick="switchTab('login');return false;">Sign in</a></p>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+  const Storage=(()=>{const SK='fieldform_surveys',UK='fieldform_user';return{saveUser:u=>localStorage.setItem(UK,JSON.stringify(u)),loadUser:()=>{try{const r=localStorage.getItem(UK);return r?JSON.parse(r):null}catch{return null}},clearUser:()=>localStorage.removeItem(UK),loadSurveys:()=>{try{const r=localStorage.getItem(SK);return r?JSON.parse(r):[]}catch{return[]}},saveSurveys:s=>localStorage.setItem(SK,JSON.stringify(s)),addSurvey(r){const s=Storage.loadSurveys();s.unshift(r);Storage.saveSurveys(s);return r},updateSurvey:(id,p)=>Storage.saveSurveys(Storage.loadSurveys().map(s=>s.id===id?{...s,...p}:s)),getPendingQueue:()=>Storage.loadSurveys().filter(s=>s.status==='pending')}})();
+
+  const API=(()=>{const BASE='/api';const tok=()=>{const u=Storage.loadUser();return u?.token||null};const hdrs=()=>({'Content-Type':'application/json',...(tok()?{Authorization:`Bearer ${tok()}`}:{})});async function req(m,p,b){let r;try{r=await fetch(BASE+p,{method:m,headers:hdrs(),...(b?{body:JSON.stringify(b)}:{})})}catch(e){console.error('[API]',m,p,e);return{ok:false,status:0,message:'Cannot reach server.'}}let d;try{d=await r.json()}catch{return{ok:false,status:r.status,message:`Server error ${r.status}`}}if(!r.ok)return{ok:false,status:r.status,message:d.message||`Error ${r.status}`};return{ok:true,status:r.status,data:d}}return{auth:{login:(u,p)=>req('POST','/auth/login',{username:u,password:p}),register:(u,p,r)=>req('POST','/auth/register',{username:u,password:p,role:r})}}})();
+
+  if(Storage.loadUser())window.location.replace('/dashboard.html');
+
+  function switchTab(t){['login','register'].forEach(x=>{document.getElementById('tab-'+x).classList.toggle('active',x===t);document.getElementById('panel-'+x).classList.toggle('active',x===t)});showErr('')}
+  function showErr(m){const e=document.getElementById('err');e.textContent=m;e.classList.toggle('on',!!m)}
+  function busy(id,on,lbl){const b=document.getElementById(id);b.disabled=on;b.textContent=on?'Please wait…':lbl}
+  let tt;function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),2800)}
+
+  async function doLogin(){
+    const u=document.getElementById('lu').value.trim(),p=document.getElementById('lp').value;
+    if(!u||!p){showErr('Please fill in all fields.');return}
+    if(p.length<6){showErr('Password must be at least 6 characters.');return}
+    busy('btn-login',true,'Sign In');
+    try{
+      const res=await API.auth.login(u,p);
+      if(res.ok){Storage.saveUser({username:u,role:res.data?.user?.role||'USER',token:res.data?.token});window.location.href='/dashboard.html';return}
+      if(res.status===0){Storage.saveUser({username:u,role:'USER',token:'offline-'+Date.now()});window.location.href='/dashboard.html';return}
+      showErr(res.message||'Sign in failed.');
+    }catch(e){showErr('Unexpected error — check browser console.');console.error(e)}
+    finally{busy('btn-login',false,'Sign In')}
+  }
+
+  async function doRegister(){
+    const u=document.getElementById('ru').value.trim(),p=document.getElementById('rp').value,r=document.getElementById('rr').value;
+    if(!u||!p){showErr('Please fill in all fields.');return}
+    if(p.length<6){showErr('Password must be at least 6 characters.');return}
+    busy('btn-register',true,'Create Account');
+    try{
+      const res=await API.auth.register(u,p,r);
+      if(res.ok){Storage.saveUser({username:u,role:r,token:res.data?.token});window.location.href='/dashboard.html';return}
+      if(res.status===0){Storage.saveUser({username:u,role:r,token:'offline-'+Date.now()});window.location.href='/dashboard.html';return}
+      showErr(res.message||'Registration failed.');
+    }catch(e){showErr('Unexpected error — check browser console.');console.error(e)}
+    finally{busy('btn-register',false,'Create Account')}
+  }
+
+  document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;document.getElementById('panel-login').classList.contains('active')?doLogin():doRegister()});
+</script>
+</body>
+</html>

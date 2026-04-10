@@ -1,0 +1,245 @@
+/* ─────────────────────────────────────────
+   FieldForm — Shared Styles
+   All pages import this file.
+───────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,300&family=Syne:wght@400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:        #14213D;
+  --ink-soft:   #3D4F6B;
+  --ink-ghost:  #8393A8;
+  --clay:       #C4622D;
+  --clay-pale:  #F5E8DF;
+  --parch:      #F8F4EE;
+  --parch-2:    #EDE8E0;
+  --white:      #FFFFFF;
+  --green:      #2D6A4F;
+  --green-pale: #D8F0E5;
+  --red:        #B5291A;
+  --red-pale:   #FDECEA;
+  --amber:      #9A6200;
+  --amber-pale: #FFF3CD;
+  --border:     rgba(20,33,61,0.12);
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+  --shadow-sm:  0 1px 3px rgba(20,33,61,0.08);
+  --shadow-md:  0 4px 20px rgba(20,33,61,0.10);
+  --shadow-lg:  0 8px 40px rgba(20,33,61,0.14);
+  --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+
+body {
+  font-family: 'Syne', sans-serif;
+  background: var(--parch);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* ── PAGE FADE-IN ────────────────────── */
+body { animation: pageFade 0.28s ease both; }
+@keyframes pageFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── TOAST ───────────────────────────── */
+#toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--ink); color: #fff; font-size: 14px;
+  padding: 10px 20px; border-radius: 999px; z-index: 1000;
+  transition: transform 0.3s ease; white-space: nowrap; pointer-events: none;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── TOP BAR ─────────────────────────── */
+.top-bar {
+  background: var(--white); border-bottom: 1px solid var(--border);
+  padding: 0 20px; height: 60px; display: flex; align-items: center;
+  justify-content: space-between; position: sticky; top: 0; z-index: 10;
+}
+.top-bar-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.top-bar-brand-icon {
+  width: 30px; height: 30px; background: var(--ink); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.top-bar-brand-icon svg { width: 16px; height: 16px; fill: var(--clay); }
+.top-bar-brand-name { font-family: 'Fraunces', serif; font-weight: 700; font-size: 17px; }
+.top-bar-right { display: flex; align-items: center; gap: 12px; position: relative; }
+
+/* ── SYNC PILL ───────────────────────── */
+.sync-pill {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+  padding: 4px 10px; border-radius: 999px; display: flex; align-items: center; gap: 5px;
+}
+.sync-pill.online  { background: var(--green-pale); color: var(--green); }
+.sync-pill.offline { background: var(--amber-pale); color: var(--amber); }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.sync-pill.online  .sync-dot { background: var(--green); }
+.sync-pill.offline .sync-dot { background: var(--amber); }
+
+/* ── AVATAR / USER MENU ──────────────── */
+.avatar-btn {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--clay-pale); border: 2px solid var(--clay);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600; color: var(--clay); cursor: pointer;
+  transition: all var(--transition); letter-spacing: 0.04em;
+}
+.avatar-btn:hover { background: var(--clay); color: var(--white); }
+
+.user-menu {
+  position: absolute; top: 54px; right: 0;
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
+  width: 200px; display: none; z-index: 100; overflow: hidden;
+}
+.user-menu.open { display: block; }
+.user-menu-header { padding: 12px 14px; border-bottom: 1px solid var(--parch-2); }
+.user-menu-name  { font-size: 14px; font-weight: 600; color: var(--ink); }
+.user-menu-role  { font-size: 11px; color: var(--ink-ghost); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+.user-menu-item {
+  display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+  font-size: 13px; color: var(--ink-soft); cursor: pointer;
+  transition: background var(--transition);
+}
+.user-menu-item:hover { background: var(--parch); }
+.user-menu-item.danger { color: var(--red); }
+.user-menu-item svg { width: 14px; height: 14px; fill: currentColor; }
+
+/* ── FORM ELEMENTS ───────────────────── */
+.field { margin-bottom: 18px; }
+.field label {
+  display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft);
+  letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px;
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%; padding: 11px 14px; font-family: 'Syne', sans-serif;
+  font-size: 15px; color: var(--ink); background: var(--parch);
+  border: 1.5px solid var(--border); border-radius: var(--radius-md);
+  outline: none; transition: border-color var(--transition), background var(--transition);
+  appearance: none;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus { border-color: var(--clay); background: var(--white); }
+.field input::placeholder { color: var(--ink-ghost); }
+.field textarea { resize: vertical; min-height: 80px; }
+.field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238393A8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px;
+}
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ── BUTTONS ─────────────────────────── */
+.btn-primary {
+  width: 100%; padding: 13px; font-family: 'Syne', sans-serif;
+  font-size: 15px; font-weight: 600; color: var(--white);
+  background: var(--ink); border: none; border-radius: var(--radius-md);
+  cursor: pointer; transition: all var(--transition); letter-spacing: 0.02em;
+}
+.btn-primary:hover  { background: var(--clay); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-primary:active { transform: translateY(0); box-shadow: none; }
+
+.btn-secondary {
+  padding: 10px 18px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--ink-soft); background: var(--white);
+  border: 1.5px solid var(--border); border-radius: var(--radius-md);
+  cursor: pointer; transition: all var(--transition);
+}
+.btn-secondary:hover { border-color: var(--ink); color: var(--ink); }
+
+.btn-clay {
+  padding: 10px 18px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--white); background: var(--clay); border: none;
+  border-radius: var(--radius-md); cursor: pointer;
+  transition: all var(--transition); display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-clay:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-clay svg { width: 15px; height: 15px; fill: currentColor; }
+
+.btn-back {
+  width: 34px; height: 34px; border-radius: var(--radius-md);
+  background: var(--parch); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all var(--transition); color: var(--ink); flex-shrink: 0;
+}
+.btn-back:hover { background: var(--parch-2); }
+.btn-back svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── BADGES ──────────────────────────── */
+.badge {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  padding: 3px 8px; border-radius: 999px; text-transform: uppercase;
+}
+.badge.synced  { background: var(--green-pale); color: var(--green); }
+.badge.pending { background: var(--amber-pale); color: var(--amber); }
+.badge.local   { background: var(--parch-2);    color: var(--ink-soft); }
+
+/* ── OFFLINE BANNER ──────────────────── */
+.offline-banner {
+  background: var(--amber-pale); border: 1px solid rgba(154,98,0,0.2);
+  border-radius: var(--radius-md); padding: 12px 16px;
+  display: none; align-items: center; gap: 12px; margin-bottom: 20px;
+  font-size: 13px; color: var(--amber);
+}
+.offline-banner.visible { display: flex; }
+.offline-banner svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; flex-shrink: 0; }
+.offline-banner strong { font-weight: 600; }
+.btn-sync {
+  margin-left: auto; padding: 5px 12px; font-size: 12px; font-weight: 600;
+  background: var(--amber); color: var(--white); border: none;
+  border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap;
+}
+
+/* ── TOPO BACKGROUND ─────────────────── */
+.topo-bg {
+  position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
+}
+.topo-bg svg { width: 100%; height: 100%; opacity: 0.045; }
+.topo-overlay {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(196,98,45,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 90%, rgba(20,33,61,0.05) 0%, transparent 50%);
+}
+
+/* ── CONTENT WRAPPER ─────────────────── */
+.page-content {
+  max-width: 680px; margin: 0 auto; padding: 24px 20px 40px; width: 100%;
+}
+.page-content.narrow { max-width: 560px; }
+
+/* ── SECTION CARD ────────────────────── */
+.card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); padding: 24px; margin-bottom: 16px;
+}
+.card-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+  padding-bottom: 16px; border-bottom: 1px solid var(--parch-2);
+}
+.card-icon {
+  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.card-icon.clay  { background: var(--clay-pale); color: var(--clay); }
+.card-icon.ink   { background: var(--parch-2);   color: var(--ink-soft); }
+.card-icon.green { background: var(--green-pale); color: var(--green); }
+.card-icon svg   { width: 16px; height: 16px; fill: currentColor; }
+.card-title { font-size: 15px; font-weight: 600; color: var(--ink); }
+.card-desc  { font-size: 12px; color: var(--ink-ghost); margin-top: 2px; }
+
+/* ── MOBILE ──────────────────────────── */
+@media (max-width: 480px) {
+  .field-grid { grid-template-columns: 1fr; }
+}
