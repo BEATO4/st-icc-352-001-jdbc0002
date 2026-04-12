@@ -134,7 +134,7 @@
 
   <div class="offline-banner" id="offline-banner">
     <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
-    <span><strong id="pending-count">0</strong> forms queued offline — will sync when reconnected</span>
+    <span id="banner-msg"></span>
     <button class="btn-sync" onclick="syncNow()">Sync now</button>
   </div>
 
@@ -167,8 +167,18 @@
 
     const pendingQ = surveys.filter(s => s.status === 'pending').length;
     const banner   = document.getElementById('offline-banner');
+    const online   = navigator.onLine;
+
     banner.classList.toggle('visible', pendingQ > 0);
-    document.getElementById('pending-count').textContent = pendingQ;
+
+    if (pendingQ > 0) {
+      const msg = document.getElementById('banner-msg');
+      if (online) {
+        msg.innerHTML = `<strong>${pendingQ}</strong> form(s) pending — click to sync now`;
+      } else {
+        msg.innerHTML = `<strong>${pendingQ}</strong> form(s) queued offline — will sync when reconnected`;
+      }
+    }
 
     const list = document.getElementById('survey-list');
     if (!surveys.length) {
@@ -201,9 +211,29 @@
   }
 
   async function syncNow() {
-    if (!navigator.onLine) { toast('Still offline — connect to internet first'); return; }
+    if (!navigator.onLine) { toast('Sin conexión — conéctate primero'); return; }
+
+    toast('Sincronizando…');
     const result = await API.syncQueue();
-    toast(result.synced > 0 ? `${result.synced} survey(s) synced!` : 'Nothing to sync');
+
+    // Token expirado: limpiar sesión y redirigir al login
+    if (result.authExpired) {
+      Storage.clearUser();
+      window.location.href = '/login.html';
+      return;
+    }
+
+    if (result.synced > 0 && result.failed === 0) {
+      toast(`✓ ${result.synced} encuesta(s) sincronizada(s)`);
+    } else if (result.synced > 0 && result.failed > 0) {
+      toast(`✓ ${result.synced} sincronizada(s), ✗ ${result.failed} fallaron`);
+    } else if (result.failed > 0) {
+      const firstError = result.errors[0];
+      toast(`Error al sincronizar: ${firstError ? firstError.reason : 'respuesta inesperada del servidor'}`);
+    } else {
+      toast('No hay nada pendiente de sincronizar');
+    }
+
     render();
   }
 

@@ -62,7 +62,7 @@ public class SurveyFormController {
             ctx.status(201).json(Map.of(
                     "success", true,
                     "message", "Survey form created successfully",
-                    "form", toMap(created)
+                    "form", Map.of("id", created.getIdAsString() != null ? created.getIdAsString() : "")
             ));
         } catch (IllegalArgumentException e) {
             ctx.status(400).json(Map.of("success", false, "message", e.getMessage()));
@@ -90,7 +90,7 @@ public class SurveyFormController {
             ctx.json(Map.of(
                     "success", true,
                     "count", forms.size(),
-                    "forms", forms.stream().map(this::toMap).toList()
+                    "forms", forms.stream().map(this::toMapSummary).toList()
             ));
         } catch (Exception e) {
             logger.error("Error retrieving survey forms", e);
@@ -150,7 +150,7 @@ public class SurveyFormController {
             ctx.json(Map.of(
                     "success", true,
                     "count", forms.size(),
-                    "forms", forms.stream().map(this::toMap).toList()
+                    "forms", forms.stream().map(this::toMapSummary).toList()
             ));
         } catch (Exception e) {
             logger.error("Error retrieving forms by user ID", e);
@@ -171,7 +171,7 @@ public class SurveyFormController {
             ctx.json(Map.of(
                     "success", true,
                     "count", forms.size(),
-                    "forms", forms.stream().map(this::toMap).toList()
+                    "forms", forms.stream().map(this::toMapSummary).toList()
             ));
         } catch (Exception e) {
             logger.error("Error retrieving forms with location", e);
@@ -288,6 +288,24 @@ public class SurveyFormController {
                 Map.entry("latitude",         f.getLatitude() != null ? f.getLatitude() : 0.0),
                 Map.entry("longitude",        f.getLongitude() != null ? f.getLongitude() : 0.0),
                 Map.entry("photoBase64",      f.getPhotoBase64() != null ? f.getPhotoBase64() : ""),
+                Map.entry("userId",           f.getUserId() != null ? f.getUserId() : ""),
+                Map.entry("username",         f.getUsername() != null ? f.getUsername() : ""),
+                Map.entry("synced",           f.isSynced()),
+                Map.entry("createdAt",        f.getCreatedAt() != null ? f.getCreatedAt().toString() : ""),
+                Map.entry("updatedAt",        f.getUpdatedAt() != null ? f.getUpdatedAt().toString() : "")
+        );
+    }
+
+    /** Same as toMap but omits photoBase64 — used in list endpoints to avoid huge payloads. */
+    private Map<String, Object> toMapSummary(SurveyForm f) {
+        return Map.ofEntries(
+                Map.entry("id",               f.getIdAsString() != null ? f.getIdAsString() : ""),
+                Map.entry("name",             f.getName() != null ? f.getName() : ""),
+                Map.entry("sector",           f.getSector() != null ? f.getSector() : ""),
+                Map.entry("educationalLevel", f.getEducationalLevel() != null ? f.getEducationalLevel() : ""),
+                Map.entry("latitude",         f.getLatitude() != null ? f.getLatitude() : 0.0),
+                Map.entry("longitude",        f.getLongitude() != null ? f.getLongitude() : 0.0),
+                Map.entry("hasPhoto",         f.getPhotoBase64() != null && !f.getPhotoBase64().isEmpty()),
                 Map.entry("userId",           f.getUserId() != null ? f.getUserId() : ""),
                 Map.entry("username",         f.getUsername() != null ? f.getUsername() : ""),
                 Map.entry("synced",           f.isSynced()),

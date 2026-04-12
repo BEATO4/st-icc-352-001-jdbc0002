@@ -142,7 +142,8 @@
 
     /* ── Map container ───────────────────────────── */
     #map {
-      flex: 1;
+      position: absolute;
+      inset: 0;
       z-index: 1;
     }
 
@@ -193,7 +194,7 @@
     @media (max-width: 640px) {
       .map-layout { flex-direction: column-reverse; }
       .map-sidebar { width: 100%; height: 45vh; border-right: none; border-top: 1px solid var(--border); }
-      #map { flex: 1; min-height: 55vh; }
+      .map-layout > div:last-child { min-height: 55vw; }
     }
   </style>
 </head>
@@ -270,7 +271,7 @@
   </div>
 
   <!-- Map -->
-  <div style="flex:1; position:relative;">
+  <div style="flex:1; position:relative; min-height:0;">
     <div id="map"></div>
     <div class="map-loading" id="map-loading">
       <div class="spinner"></div>
@@ -348,26 +349,42 @@
     }
     const res = await API.surveys.getAll();
     if (!res.ok) {
-      toast('Error al cargar del servidor: ' + res.message);
+      if (res.status === 401) {
+        Storage.clearUser();
+        window.location.href = '/login.html';
+        return;
+      }
+      toast('Error al cargar del servidor — mostrando datos locales');
+      setSource('local');
       return;
     }
-    allRecords = res.data.forms || [];
+    // Deduplicar por ID en caso de registros repetidos en MongoDB
+    const seen = new Set();
+    allRecords = (res.data.forms || []).filter(r => {
+      if (seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
+    });
     renderAll();
   }
 
   function loadLocal() {
-    allRecords = Storage.loadSurveys().map(s => ({
-      id:               s.id,
-      name:             s.name,
-      sector:           s.sector,
-      educationalLevel: s.educationalLevel,
-      latitude:         s.latitude  || null,
-      longitude:        s.longitude || null,
-      photoBase64:      s.photoBase64 || null,
-      username:         s.username || user.username,
-      createdAt:        s.createdAt,
-      status:           s.status
-    }));
+    allRecords = Storage.loadSurveys()
+            // En modo local solo mostrar pendientes/drafts; los synced ya están en servidor
+            .filter(s => s.status !== 'synced')
+            .map(s => ({
+              id:               s.id,
+              name:             s.name,
+              sector:           s.sector,
+              educationalLevel: s.educationalLevel,
+              latitude:         s.latitude  || null,
+              longitude:        s.longitude || null,
+              hasPhoto:         !!(s.photoBase64),
+              photoBase64:      s.photoBase64 || null,
+              username:         s.username || user.username,
+              createdAt:        s.createdAt,
+              status:           s.status
+            }));
     renderAll();
   }
 
@@ -421,27 +438,27 @@
 
     geoRecords.forEach((r, i) => {
       const marker = L.marker([r.latitude, r.longitude], { icon: iconDefault })
-              .bindPopup(buildPopup(r), { maxWidth: 260 });
+              .bindPopup(buildPopupSkeleton(r), { maxWidth: 260 });
 
       marker.on('click', () => activateItem(i));
+      marker.on('popupopen', () => loadPopupPhoto(r, marker));
       markerGroup.addLayer(marker);
       markers.push(marker);
     });
 
-    // Fit bounds only when markers exist
     if (geoRecords.length > 0) {
       try { map.fitBounds(markerGroup.getBounds().pad(0.25)); } catch(e) {}
     } else {
-      // Default view — Dominican Republic
       map.setView([18.7357, -70.1627], 8);
     }
   }
 
-  function buildPopup(r) {
+  /** Popup sin foto — se muestra de inmediato */
+  function buildPopupSkeleton(r) {
     const edu  = EDU[r.educationalLevel] || r.educationalLevel || '—';
     const date = r.createdAt ? new Date(r.createdAt).toLocaleDateString('es', { day:'numeric', month:'short', year:'numeric' }) : '—';
-    const photo = r.photoBase64
-            ? `<img class="popup-photo" src="${r.photoBase64.startsWith('data:') ? r.photoBase64 : 'data:image/jpeg;base64,' + r.photoBase64}" alt="Foto">`
+    const photoSlot = r.hasPhoto
+            ? `<div class="popup-no-photo" id="photo-slot-${escAttr(r.id)}">Cargando foto…</div>`
             : `<div class="popup-no-photo">Sin foto</div>`;
     return `
       <div class="popup-name">${escHtml(r.name || 'Sin nombre')}</div>
@@ -450,8 +467,24 @@
       <div class="popup-row"><span class="popup-label">Registrado por</span><span class="popup-value">${escHtml(r.username || '—')}</span></div>
       <div class="popup-row"><span class="popup-label">Fecha</span><span class="popup-value">${date}</span></div>
       <div class="popup-row"><span class="popup-label">Coordenadas</span><span class="popup-value">${r.latitude.toFixed(5)}, ${r.longitude.toFixed(5)}</span></div>
-      ${photo}
+      ${photoSlot}
     `;
+  }
+
+  /** Carga la foto en background via getById solo cuando el popup se abre */
+  async function loadPopupPhoto(r, marker) {
+    if (!r.hasPhoto || !r.id || dataSource !== 'server') return;
+    const slot = document.getElementById('photo-slot-' + r.id);
+    if (!slot) return;
+    const res = await API.surveys.getById(r.id);
+    if (!res.ok || !res.data?.form?.photoBase64) { if (slot) slot.textContent = 'Sin foto'; return; }
+    const src = res.data.form.photoBase64;
+    const img = document.createElement('img');
+    img.className = 'popup-photo';
+    img.src = src.startsWith('data:') ? src : 'data:image/jpeg;base64,' + src;
+    img.alt = 'Foto';
+    slot.replaceWith(img);
+    marker.update();
   }
 
   /* ── List ─────────────────────────────────────── */

@@ -304,23 +304,38 @@
     const name   = document.getElementById('f-name').value.trim();
     const sector = document.getElementById('f-sector').value.trim();
     const edu    = document.getElementById('f-edu').value;
-    if (!name || !sector || !edu) { toast('Please fill in all required fields'); return; }
+    if (!name || !sector || !edu) { toast('Por favor llena todos los campos requeridos'); return; }
 
     const payload = buildPayload();
 
     if (navigator.onLine) {
       const res = await API.surveys.create(payload);
+
       if (res.ok) {
-        toast('Survey submitted!');
+        // Guardar en localStorage como 'synced' para que el dashboard lo muestre
+        Storage.addSurvey({ ...payload, status: 'synced', serverId: res.data?.form?.id });
+        toast('¡Encuesta enviada!');
         window.location.href = '/dashboard.html';
         return;
       }
-      // API failed even though online → fall through to offline queue
+
+      // Token expirado → redirigir al login
+      if (res.status === 401) {
+        Storage.clearUser();
+        window.location.href = '/login.html';
+        return;
+      }
+
+      // Otro error del servidor → encolar y avisar
+      toast(`Error al enviar (${res.message}) — guardado localmente`);
+      Storage.addSurvey({ ...payload, status: 'pending' });
+      window.location.href = '/dashboard.html';
+      return;
     }
 
-    // Offline or API error: queue locally
+    // Sin conexión: encolar como pending
     Storage.addSurvey({ ...payload, status: 'pending' });
-    toast('Saved offline — will sync when connected');
+    toast('Sin conexión — guardado localmente, se sincronizará al reconectarse');
     window.location.href = '/dashboard.html';
   }
 </script>

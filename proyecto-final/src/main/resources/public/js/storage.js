@@ -39,7 +39,7 @@ const Storage = (() => {
   /** Update an existing record by its local id. */
   function updateSurvey(id, patch) {
     const surveys = loadSurveys().map(s =>
-      s.id === id ? { ...s, ...patch } : s
+        s.id === id ? { ...s, ...patch } : s
     );
     saveSurveys(surveys);
   }
@@ -53,7 +53,7 @@ const Storage = (() => {
   /** Mark all 'pending' records as 'synced'. Called after a successful API sync. */
   function markAllSynced() {
     const surveys = loadSurveys().map(s =>
-      s.status === 'pending' ? { ...s, status: 'synced' } : s
+        s.status === 'pending' ? { ...s, status: 'synced' } : s
     );
     saveSurveys(surveys);
   }
