@@ -138,14 +138,14 @@
         <input type="text" id="f-sector" placeholder="e.g. Villa Mella" oninput="updateProgress()">
       </div>
       <div class="field">
-        <label>Education Level <span style="color:var(--clay)">*</span></label>
+        <label>Nivel Educativo <span style="color:var(--clay)">*</span></label>
         <select id="f-edu" onchange="updateProgress()">
-          <option value="">Select level…</option>
-          <option value="PRIMARIA">Primary</option>
-          <option value="SECUNDARIA">Secondary</option>
-          <option value="UNIVERSIDAD">University</option>
-          <option value="POSTGRADO">Postgraduate</option>
-          <option value="DOCTORADO">Doctoral</option>
+          <option value="">Seleccione nivel…</option>
+          <option value="PRIMARIA">Primaria</option>
+          <option value="SECUNDARIA">Secundaria</option>
+          <option value="UNIVERSIDAD">Universidad</option>
+          <option value="POSTGRADO">Postgrado</option>
+          <option value="DOCTORADO">Doctorado</option>
         </select>
       </div>
     </div>
@@ -203,7 +203,7 @@
   <!-- Submit -->
   <div class="submit-row">
     <button class="btn-secondary" onclick="saveDraft()">Save Draft</button>
-    <button class="btn-submit"    onclick="submitForm()">
+    <button class="btn-submit" id="submit-btn" onclick="submitForm()">
       <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
       Submit Survey
     </button>
@@ -218,6 +218,7 @@
 <script>
   const user = requireAuth();
   let photoData = null;
+  let isSubmitting = false;
 
   function updateProgress() {
     const fields = [
@@ -228,6 +229,19 @@
     const pct = Math.round((fields.filter(Boolean).length / fields.length) * 100);
     document.getElementById('prog-bar').style.width = pct + '%';
     document.getElementById('prog-pct').textContent = pct + '%';
+  }
+
+  function setSubmitState(disabled) {
+    const submitBtn = document.getElementById('submit-btn');
+    if (!submitBtn) return;
+    submitBtn.disabled = disabled;
+    submitBtn.style.opacity = disabled ? '0.7' : '1';
+    submitBtn.style.cursor = disabled ? 'wait' : 'pointer';
+  }
+
+  function goToDashboard() {
+    sessionStorage.setItem('fieldform_refresh_dashboard', '1');
+    window.location.href = '/dashboard.html';
   }
 
   function getLocation() {
@@ -296,38 +310,58 @@
   }
 
   async function submitForm() {
+    if (isSubmitting) return;
+
     const name = document.getElementById('f-name').value.trim();
     const sector = document.getElementById('f-sector').value.trim();
     const edu = document.getElementById('f-edu').value;
     if (!name || !sector || !edu) { toast('Por favor llena todos los campos requeridos'); return; }
 
-    const payload = buildPayload();
+    isSubmitting = true;
+    setSubmitState(true);
 
-    if (navigator.onLine) {
-      const res = await API.surveys.create(payload);
+    try {
+      const payload = buildPayload();
 
-      if (res.ok) {
-        Storage.addSurvey({ ...payload, status: 'synced', serverId: res.data?.form?.id });
-        toast('¡Encuesta enviada!');
-        window.location.href = '/dashboard.html';
+      if (navigator.onLine) {
+        const res = await API.surveys.create(payload);
+
+        if (res.ok) {
+          Storage.addSurvey({ ...payload, status: 'synced', serverId: res.data?.form?.id });
+          toast('¡Encuesta enviada!');
+          goToDashboard();
+          return;
+        }
+
+        if (res.status === 401) {
+          Storage.clearUser();
+          window.location.href = '/login.html';
+          return;
+        }
+
+        toast(`Error al enviar (${res.message}) — guardado localmente`);
+        Storage.addSurvey({ ...payload, status: 'pending' });
+        goToDashboard();
         return;
       }
 
-      if (res.status === 401) {
-        Storage.clearUser();
-        window.location.href = '/login.html';
-        return;
-      }
-
-      toast(`Error al enviar (${res.message}) — guardado localmente`);
       Storage.addSurvey({ ...payload, status: 'pending' });
-      window.location.href = '/dashboard.html';
-      return;
+      toast('Sin conexión — guardado localmente, se sincronizará al reconectarse');
+      goToDashboard();
+    } catch (err) {
+      console.error('[submitForm] Error inesperado', err);
+      try {
+        const payload = buildPayload();
+        Storage.addSurvey({ ...payload, status: 'pending' });
+      } catch (_) {}
+      toast('Ocurrió un error, pero se guardó localmente');
+      goToDashboard();
+    } finally {
+      setTimeout(() => {
+        isSubmitting = false;
+        setSubmitState(false);
+      }, 500);
     }
-
-    Storage.addSurvey({ ...payload, status: 'pending' });
-    toast('Sin conexión — guardado localmente, se sincronizará al reconectarse');
-    window.location.href = '/dashboard.html';
   }
 </script>
 </body>
