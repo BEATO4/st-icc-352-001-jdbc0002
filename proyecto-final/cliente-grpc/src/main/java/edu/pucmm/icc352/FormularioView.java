@@ -38,11 +38,9 @@ public class FormularioView {
         mainVBox.setPadding(new Insets(15));
         mainVBox.setStyle("-fx-background-color: #f5f5f5;");
 
-        // Encabezado
         Label titleLabel = new Label("Gestor de Encuestas - gRPC");
         titleLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #333333;");
 
-        // Controles de usuario
         HBox usuarioBox = new HBox(10);
         usuarioBox.setPadding(new Insets(10));
         usuarioBox.setStyle("-fx-border-color: #ddd; -fx-border-radius: 5; -fx-background-color: #fff;");
@@ -62,17 +60,14 @@ public class FormularioView {
 
          usuarioBox.getChildren().addAll(usuarioLabel, usuarioIdField, refrescarButton, verTodosButton, crearButton);
 
-        // Tabla
         tableView = createTable();
         ScrollPane scrollPane = new ScrollPane(tableView);
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background-color: #fff;");
 
-        // Status
         statusLabel = new Label("Listo");
         statusLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #666;");
 
-        // Agregar todo
         mainVBox.getChildren().addAll(
                 titleLabel,
                 usuarioBox,
