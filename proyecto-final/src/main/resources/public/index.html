@@ -4,10 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FieldForm</title>
-  <!--
-    Inline auth check — no external scripts so this can never silently fail.
-    Reads localStorage directly rather than going through storage.js.
-  -->
   <script>
     (function () {
       try {
@@ -15,13 +11,11 @@
         var user = raw ? JSON.parse(raw) : null;
         window.location.replace(user ? '/dashboard.html' : '/login.html');
       } catch (e) {
-        // localStorage blocked (private mode, etc.) — go to login
         window.location.replace('/login.html');
       }
     })();
   </script>
 </head>
-<!-- Fallback if JS is disabled -->
 <body>
 <noscript>
   <meta http-equiv="refresh" content="0; url=/login.html">

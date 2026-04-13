@@ -7,7 +7,7 @@ const API = (() => {
   const BASE = '/api';
 
   function token() {
-    const user = Storage.loadUser();
+    const user = SurveyStorage.loadUser();
     return user?.token || null;
   }
 
@@ -71,39 +71,39 @@ const API = (() => {
   };
 
   /* ── SYNC ──────────────────────────────── */
-  async function syncQueue() {
-    const queue = Storage.getPendingQueue();
-    if (!queue.length) return { synced: 0, failed: 0, errors: [] };
+   async function syncQueue() {
+     const queue = SurveyStorage.getPendingQueue();
+     if (!queue.length) return { synced: 0, failed: 0, errors: [] };
 
-    let synced = 0, failed = 0;
-    const errors = [];
+     let synced = 0, failed = 0;
+     const errors = [];
 
-    for (const record of queue) {
-      const id = record.id;   // id local necesario para actualizar el estado después
+     for (const record of queue) {
+       const id = record.id;   // id local necesario para actualizar el estado después
 
-      // Solo enviar los campos que SurveyFormRequest espera
-      const payload = {
-        name:             record.name,
-        sector:           record.sector,
-        educationalLevel: record.educationalLevel,
-        latitude:         record.latitude,
-        longitude:        record.longitude,
-        photoBase64:      record.photoBase64 || null,
-      };
-      const res = await surveys.create(payload);
-      if (res.ok) {
-        Storage.updateSurvey(id, { status: 'synced', serverId: res.data?.form?.id });
-        synced++;
-      } else {
-        if (res.status === 401) {
-          return { synced, failed: queue.length - synced, errors, authExpired: true };
-        }
-        errors.push({ name: record.name, reason: res.message });
-        failed++;
-      }
-    }
-    return { synced, failed, errors };
-  }
+       // Solo enviar los campos que SurveyFormRequest espera
+       const payload = {
+         name:             record.name,
+         sector:           record.sector,
+         educationalLevel: record.educationalLevel,
+         latitude:         record.latitude,
+         longitude:        record.longitude,
+         photoBase64:      record.photoBase64 || null,
+       };
+       const res = await surveys.create(payload);
+       if (res.ok) {
+         SurveyStorage.updateSurvey(id, { status: 'synced', serverId: res.data?.form?.id });
+         synced++;
+       } else {
+         if (res.status === 401) {
+           return { synced, failed: queue.length - synced, errors, authExpired: true };
+         }
+         errors.push({ name: record.name, reason: res.message });
+         failed++;
+       }
+     }
+     return { synced, failed, errors };
+   }
 
   return { auth, surveys, syncQueue };
 })();

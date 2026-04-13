@@ -119,10 +119,14 @@
         <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;flex-shrink:0"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
         Ver Mapa
       </button>
-      <button class="btn-clay" onclick="window.location.href='/form.html'">
-        <svg viewBox="0 0 24 24"><path d="M19 13H13v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-        New Survey
-      </button>
+       <button class="btn-clay" onclick="window.location.href='/form.html'">
+         <svg viewBox="0 0 24 24"><path d="M19 13H13v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+         New Survey
+       </button>
+       <button class="btn-outline" onclick="refreshFromServer()">
+         <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M1 4v6h6M23 20v-6h-6M20.54 9.46a9 9 0 1 0 .02 11.07 9 9 0 0 0-.02-11.07"/></svg>
+         Refresh
+       </button>
     </div>
   </div>
 
@@ -157,7 +161,9 @@
   const EDU = { PRIMARY:'Primary', SECONDARY:'Secondary', UNIVERSITY_DEGREE:'University', POSTGRADUATE:'Postgraduate', DOCTORAL:'Doctoral' };
 
   function render() {
-    const surveys = Storage.loadSurveys().filter(s => s.userId === user.username);
+    const allSurveys = SurveyStorage.loadSurveys();
+    const surveys = allSurveys;
+
     const synced  = surveys.filter(s => s.status === 'synced').length;
     const pending = surveys.filter(s => s.status !== 'synced').length;
 
@@ -183,7 +189,7 @@
     const list = document.getElementById('survey-list');
     if (!surveys.length) {
       list.innerHTML = `<div class="empty-state">
-        <div class="empty-icon">📋</div>
+        <div class="empty-icon">—</div>
         <div class="empty-title">No surveys yet</div>
         <div class="empty-text">Tap "New Survey" to start your first field record</div>
       </div>`;
@@ -216,7 +222,6 @@
     toast('Sincronizando…');
     const result = await API.syncQueue();
 
-    // Token expirado: limpiar sesión y redirigir al login
     if (result.authExpired) {
       Storage.clearUser();
       window.location.href = '/login.html';
@@ -224,9 +229,9 @@
     }
 
     if (result.synced > 0 && result.failed === 0) {
-      toast(`✓ ${result.synced} encuesta(s) sincronizada(s)`);
+      toast(`[OK] ${result.synced} encuesta(s) sincronizada(s)`);
     } else if (result.synced > 0 && result.failed > 0) {
-      toast(`✓ ${result.synced} sincronizada(s), ✗ ${result.failed} fallaron`);
+      toast(`[OK] ${result.synced} sincronizada(s), [ERROR] ${result.failed} fallaron`);
     } else if (result.failed > 0) {
       const firstError = result.errors[0];
       toast(`Error al sincronizar: ${firstError ? firstError.reason : 'respuesta inesperada del servidor'}`);
@@ -234,6 +239,52 @@
       toast('No hay nada pendiente de sincronizar');
     }
 
+    render();
+  }
+
+  async function refreshFromServer() {
+    if (!navigator.onLine) { toast('Sin conexión'); return; }
+
+    toast('Descargando encuestas...');
+    const res = await API.surveys.getAll();
+
+    if (!res.ok) {
+      toast('Error al descargar: ' + res.message);
+      return;
+    }
+
+    const serverSurveys = res.data.forms || [];
+    let localSurveys = SurveyStorage.loadSurveys();
+
+    const serverIds = new Set(serverSurveys.map(s => s.id));
+    localSurveys = localSurveys.filter(s => !serverIds.has(s.id) || s.status !== 'synced');
+
+    for (const serverForm of serverSurveys) {
+      const alreadyLocal = localSurveys.find(s => s.id === serverForm.id);
+      if (!alreadyLocal) {
+        localSurveys.push({
+          id: serverForm.id,
+          name: serverForm.name,
+          sector: serverForm.sector,
+          educationalLevel: serverForm.educationalLevel,
+          latitude: serverForm.latitude,
+          longitude: serverForm.longitude,
+          photoBase64: serverForm.photoBase64,
+          userId: serverForm.userId,
+          username: serverForm.username,
+          createdAt: serverForm.createdAt,
+          status: 'synced',
+          serverId: serverForm.id
+        });
+      }
+    }
+
+    try {
+      localStorage.setItem('fieldform_surveys', JSON.stringify(localSurveys));
+    } catch (e) {
+      console.error('Error saving surveys:', e);
+    }
+    toast(`[OK] ${serverSurveys.length} encuesta(s) descargada(s)`);
     render();
   }
 

@@ -33,7 +33,6 @@ public class AuthService {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            // Validate input
             if (username == null || username.trim().isEmpty()) {
                 response.put("success", false);
                 response.put("message", "Username is required");
@@ -46,24 +45,19 @@ public class AuthService {
                 return response;
             }
 
-            // Check if username already exists
             if (userRepository.existsByUsername(username)) {
                 response.put("success", false);
                 response.put("message", "Username already exists");
                 return response;
             }
 
-            // Hash password
             String passwordHash = BCrypt.withDefaults().hashToString(12, password.toCharArray());
 
-            // Set default role if not provided
             String userRole = (role != null && !role.trim().isEmpty()) ? role : "USER";
 
-            // Create user
             User user = new User(username, passwordHash, userRole);
             userRepository.create(user);
 
-            // Generate token
             String token = JwtUtil.generateToken(user.getIdAsString(), user.getUsername(), user.getRole());
 
             response.put("success", true);
@@ -89,14 +83,12 @@ public class AuthService {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            // Validate input
             if (username == null || username.trim().isEmpty() || password == null || password.isEmpty()) {
                 response.put("success", false);
                 response.put("message", "Username and password are required");
                 return response;
             }
 
-            // Find user
             Optional<User> userOpt = userRepository.findByUsername(username);
             if (userOpt.isEmpty()) {
                 response.put("success", false);
@@ -106,7 +98,6 @@ public class AuthService {
 
             User user = userOpt.get();
 
-            // Verify password
             BCrypt.Result result = BCrypt.verifyer().verify(password.toCharArray(), user.getPasswordHash());
             if (!result.verified) {
                 response.put("success", false);
@@ -114,7 +105,6 @@ public class AuthService {
                 return response;
             }
 
-            // Generate token
             String token = JwtUtil.generateToken(user.getIdAsString(), user.getUsername(), user.getRole());
 
             response.put("success", true);

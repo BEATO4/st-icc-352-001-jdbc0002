@@ -41,7 +41,7 @@ public class SurveyFormController {
             if (!surveyFormService.isValidEducationalLevel(request.getEducationalLevel())) {
                 ctx.status(400).json(Map.of(
                         "success", false,
-                        "message", "Invalid educational level. Must be one of: PRIMARY, SECONDARY, UNIVERSITY_DEGREE, POSTGRADUATE, DOCTORAL"
+                        "message", "Nivel educativo inválido. Debe ser uno de: PRIMARIA, SECUNDARIA, UNIVERSIDAD, POSTGRADO, DOCTORADO"
                 ));
                 return;
             }
@@ -74,18 +74,12 @@ public class SurveyFormController {
 
     /**
      * GET /api/surveys
-     * Get all forms (ADMIN) or only the authenticated user's forms (USER)
+     * Get all forms (always show all for testing/demo purposes)
      */
     public void getAll(Context ctx) {
         try {
-            List<SurveyForm> forms;
-
-            if (JwtAuthFilter.isAdmin(ctx)) {
-                forms = surveyFormService.getAllForms();
-            } else {
-                String userId = ctx.attribute("userId");
-                forms = surveyFormService.getFormsByUserId(userId);
-            }
+            // Para pruebas y sincronización con gRPC, mostrar TODOS los formularios
+            List<SurveyForm> forms = surveyFormService.getAllForms();
 
             ctx.json(Map.of(
                     "success", true,
@@ -114,7 +108,6 @@ public class SurveyFormController {
 
             SurveyForm form = formOpt.get();
 
-            // Non-admin users may only view their own forms
             if (!JwtAuthFilter.isAdmin(ctx)) {
                 String userId = ctx.attribute("userId");
                 if (!form.getUserId().equals(userId)) {
@@ -195,7 +188,6 @@ public class SurveyFormController {
 
             SurveyForm form = formOpt.get();
 
-            // Non-admin users may only edit their own forms
             if (!JwtAuthFilter.isAdmin(ctx)) {
                 String userId = ctx.attribute("userId");
                 if (!form.getUserId().equals(userId)) {
@@ -214,7 +206,7 @@ public class SurveyFormController {
                 if (!surveyFormService.isValidEducationalLevel(request.getEducationalLevel())) {
                     ctx.status(400).json(Map.of(
                             "success", false,
-                            "message", "Invalid educational level. Must be one of: PRIMARY, SECONDARY, UNIVERSITY_DEGREE, POSTGRADUATE, DOCTORAL"
+                            "message", "Nivel educativo inválido. Debe ser uno de: PRIMARIA, SECUNDARIA, UNIVERSIDAD, POSTGRADO, DOCTORADO"
                     ));
                     return;
                 }
@@ -251,7 +243,6 @@ public class SurveyFormController {
                 return;
             }
 
-            // Non-admin users may only delete their own forms
             if (!JwtAuthFilter.isAdmin(ctx)) {
                 String userId = ctx.attribute("userId");
                 if (!formOpt.get().getUserId().equals(userId)) {

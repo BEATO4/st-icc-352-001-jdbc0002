@@ -3,7 +3,7 @@
  * Wraps localStorage so the rest of the app never touches it directly.
  */
 
-const Storage = (() => {
+const SurveyStorage = (() => {
   const SURVEYS_KEY = 'fieldform_surveys';
   const USER_KEY    = 'fieldform_user';
 
@@ -28,32 +28,10 @@ const Storage = (() => {
     localStorage.setItem(SURVEYS_KEY, JSON.stringify(surveys));
   }
 
-  /** Add a new survey record to the front of the list. */
-  function addSurvey(record) {
-    const surveys = loadSurveys();
-    surveys.unshift(record);
-    saveSurveys(surveys);
-    return record;
-  }
-
   /** Update an existing record by its local id. */
   function updateSurvey(id, patch) {
     const surveys = loadSurveys().map(s =>
         s.id === id ? { ...s, ...patch } : s
-    );
-    saveSurveys(surveys);
-  }
-
-  /** Delete a record by its local id. */
-  function deleteSurvey(id) {
-    const surveys = loadSurveys().filter(s => s.id !== id);
-    saveSurveys(surveys);
-  }
-
-  /** Mark all 'pending' records as 'synced'. Called after a successful API sync. */
-  function markAllSynced() {
-    const surveys = loadSurveys().map(s =>
-        s.status === 'pending' ? { ...s, status: 'synced' } : s
     );
     saveSurveys(surveys);
   }
@@ -63,5 +41,5 @@ const Storage = (() => {
     return loadSurveys().filter(s => s.status === 'pending');
   }
 
-  return { saveUser, loadUser, clearUser, loadSurveys, addSurvey, updateSurvey, deleteSurvey, markAllSynced, getPendingQueue };
+  return { saveUser, loadUser, clearUser, loadSurveys, saveSurveys, updateSurvey, getPendingQueue };
 })();

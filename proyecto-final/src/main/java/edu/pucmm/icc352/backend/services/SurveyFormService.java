@@ -28,18 +28,17 @@ public class SurveyFormService {
      */
     public SurveyForm createForm(SurveyForm form) {
         try {
-            // Validate required fields
             if (form.getName() == null || form.getName().trim().isEmpty()) {
-                throw new IllegalArgumentException("Name is required");
+                throw new IllegalArgumentException("Nombre es requerido");
             }
             if (form.getSector() == null || form.getSector().trim().isEmpty()) {
-                throw new IllegalArgumentException("Sector is required");
+                throw new IllegalArgumentException("Sector es requerido");
             }
             if (form.getEducationalLevel() == null || form.getEducationalLevel().trim().isEmpty()) {
-                throw new IllegalArgumentException("Educational level is required");
+                throw new IllegalArgumentException("Nivel educativo es requerido");
             }
             if (form.getUserId() == null || form.getUserId().trim().isEmpty()) {
-                throw new IllegalArgumentException("User ID is required");
+                throw new IllegalArgumentException("User ID es requerido");
             }
 
             return formRepository.create(form);

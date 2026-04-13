@@ -25,14 +25,14 @@ function toast(msg) {
  * Returns the current user object.
  */
 function requireAuth() {
-  const user = Storage.loadUser();
+  const user = SurveyStorage.loadUser();
   if (!user) { window.location.href = '/login.html'; return null; }
   return user;
 }
 
 /* ── USER MENU (top bar) ─────────────────────── */
 function initUserMenu() {
-  const user = Storage.loadUser();
+  const user = SurveyStorage.loadUser();
   if (!user) return;
 
   const avatarBtn  = document.getElementById('avatar-btn');
@@ -58,7 +58,7 @@ function initUserMenu() {
 
 /* ── LOGOUT ──────────────────────────────────── */
 function logout() {
-  Storage.clearUser();
+  SurveyStorage.clearUser();
   window.location.href = '/login.html';
 }
 
@@ -87,7 +87,7 @@ function greeting(username) {
 
 /* ── AUTO-SYNC ON RECONNECT ──────────────────── */
 window.addEventListener('online', async () => {
-  const queue = Storage.getPendingQueue();
+  const queue = SurveyStorage.getPendingQueue();
   if (!queue.length) return;
   const result = await API.syncQueue();
   if (result.synced > 0) {

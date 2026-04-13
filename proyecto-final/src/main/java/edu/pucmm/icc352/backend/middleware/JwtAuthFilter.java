@@ -34,7 +34,6 @@ public class JwtAuthFilter implements Handler {
             return;
         }
 
-        // Add user info to context attributes for use in controllers
         ctx.attribute("userId", JwtUtil.extractUserId(token));
         ctx.attribute("username", JwtUtil.extractUsername(token));
         ctx.attribute("role", JwtUtil.extractRole(token));

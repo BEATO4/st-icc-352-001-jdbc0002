@@ -141,11 +141,11 @@
         <label>Education Level <span style="color:var(--clay)">*</span></label>
         <select id="f-edu" onchange="updateProgress()">
           <option value="">Select level…</option>
-          <option value="PRIMARY">Primary</option>
-          <option value="SECONDARY">Secondary</option>
-          <option value="UNIVERSITY_DEGREE">University</option>
-          <option value="POSTGRADUATE">Postgraduate</option>
-          <option value="DOCTORAL">Doctoral</option>
+          <option value="PRIMARIA">Primary</option>
+          <option value="SECUNDARIA">Secondary</option>
+          <option value="UNIVERSIDAD">University</option>
+          <option value="POSTGRADO">Postgraduate</option>
+          <option value="DOCTORADO">Doctoral</option>
         </select>
       </div>
     </div>
@@ -219,7 +219,6 @@
   const user = requireAuth();
   let photoData = null;
 
-  /* ── PROGRESS BAR ──────────────────────── */
   function updateProgress() {
     const fields = [
       document.getElementById('f-name').value.trim(),
@@ -231,7 +230,6 @@
     document.getElementById('prog-pct').textContent = pct + '%';
   }
 
-  /* ── GEOLOCATION ───────────────────────── */
   function getLocation() {
     if (!navigator.geolocation) { toast('Geolocation not supported'); return; }
     const btn = document.getElementById('geo-btn');
@@ -251,7 +249,6 @@
     );
   }
 
-  /* ── PHOTO ─────────────────────────────── */
   function handlePhoto(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -275,19 +272,18 @@
     document.getElementById('f-photo').value = '';
   }
 
-  /* ── BUILD PAYLOAD ─────────────────────── */
   function buildPayload() {
     return {
-      id:               'local-' + Date.now(),
-      name:             document.getElementById('f-name').value.trim(),
-      sector:           document.getElementById('f-sector').value.trim(),
+      id: 'local-' + Date.now(),
+      name: document.getElementById('f-name').value.trim(),
+      sector: document.getElementById('f-sector').value.trim(),
       educationalLevel: document.getElementById('f-edu').value,
-      latitude:         parseFloat(document.getElementById('f-lat').value) || null,
-      longitude:        parseFloat(document.getElementById('f-lng').value) || null,
-      photoBase64:      photoData,
-      userId:           user.username,
-      username:         user.username,
-      createdAt:        new Date().toISOString(),
+      latitude: parseFloat(document.getElementById('f-lat').value) || null,
+      longitude: parseFloat(document.getElementById('f-lng').value) || null,
+      photoBase64: photoData,
+      userId: user.username,
+      username: user.username,
+      createdAt: new Date().toISOString(),
     };
   }
 
@@ -299,11 +295,10 @@
     toast('Draft saved to device');
   }
 
-  /* ── SUBMIT ────────────────────────────── */
   async function submitForm() {
-    const name   = document.getElementById('f-name').value.trim();
+    const name = document.getElementById('f-name').value.trim();
     const sector = document.getElementById('f-sector').value.trim();
-    const edu    = document.getElementById('f-edu').value;
+    const edu = document.getElementById('f-edu').value;
     if (!name || !sector || !edu) { toast('Por favor llena todos los campos requeridos'); return; }
 
     const payload = buildPayload();
@@ -312,28 +307,24 @@
       const res = await API.surveys.create(payload);
 
       if (res.ok) {
-        // Guardar en localStorage como 'synced' para que el dashboard lo muestre
         Storage.addSurvey({ ...payload, status: 'synced', serverId: res.data?.form?.id });
         toast('¡Encuesta enviada!');
         window.location.href = '/dashboard.html';
         return;
       }
 
-      // Token expirado → redirigir al login
       if (res.status === 401) {
         Storage.clearUser();
         window.location.href = '/login.html';
         return;
       }
 
-      // Otro error del servidor → encolar y avisar
       toast(`Error al enviar (${res.message}) — guardado localmente`);
       Storage.addSurvey({ ...payload, status: 'pending' });
       window.location.href = '/dashboard.html';
       return;
     }
 
-    // Sin conexión: encolar como pending
     Storage.addSurvey({ ...payload, status: 'pending' });
     toast('Sin conexión — guardado localmente, se sincronizará al reconectarse');
     window.location.href = '/dashboard.html';
