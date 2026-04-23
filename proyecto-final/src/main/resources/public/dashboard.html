@@ -57,6 +57,14 @@
     .survey-meta  { font-size: 12px; color: var(--ink-ghost); margin-top: 3px; }
     .survey-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
     .survey-date  { font-size: 11px; color: var(--ink-ghost); }
+    .survey-actions { display: flex; gap: 6px; margin-top: 2px; }
+    .icon-btn {
+      border: 1px solid var(--border); background: var(--white); color: var(--ink-soft);
+      border-radius: 8px; padding: 4px 8px; font-size: 12px; cursor: pointer;
+      transition: all var(--transition);
+    }
+    .icon-btn:hover { border-color: var(--clay); color: var(--clay); }
+    .icon-btn.danger:hover { border-color: #c73636; color: #c73636; }
 
     .empty-state {
       text-align: center; padding: 60px 20px;
@@ -158,7 +166,19 @@
 
   document.getElementById('dash-greeting').textContent = greeting(user.username);
 
-  const EDU = { PRIMARY:'Primaria', SECONDARY:'Secundaria', UNIVERSITY_DEGREE:'Universidad', POSTGRADUATE:'Postgrado', DOCTORAL:'Doctorado' };
+  const EDU = {
+    PRIMARIA:'Primaria',
+    SECUNDARIA:'Secundaria',
+    SECONDARIA:'Secundaria',
+    UNIVERSIDAD:'Universidad',
+    POSTGRADO:'Postgrado',
+    DOCTORADO:'Doctorado',
+    PRIMARY:'Primaria',
+    SECONDARY:'Secundaria',
+    UNIVERSITY_DEGREE:'Universidad',
+    POSTGRADUATE:'Postgrado',
+    DOCTORAL:'Doctorado'
+  };
 
   function render() {
     const allSurveys = SurveyStorage.loadSurveys();
@@ -202,6 +222,24 @@
       const badgeClass = s.status === 'synced' ? 'synced' : s.status === 'pending' ? 'pending' : 'local';
       const badgeText  = s.status === 'synced' ? 'Synced' : s.status === 'pending' ? 'Pending sync' : 'Draft';
       const avatarCls  = 'survey-avatar ' + (s.status !== 'synced' ? s.status : '');
+      const safeName = (s.name || '').replace(/'/g, "&#39;");
+      let actions = '';
+
+      if (s.status === 'local' || s.status === 'pending') {
+        const publishLabel = s.status === 'pending' ? 'Retry' : 'Publish';
+        actions = `<div class="survey-actions">
+             <button class="icon-btn" onclick="editSurvey('${s.id}')">Edit</button>
+             <button class="icon-btn danger" onclick="deleteSurvey('${s.id}', '${safeName}')">Delete</button>
+             <button class="icon-btn" onclick="publishSurvey('${s.id}')">${publishLabel}</button>
+           </div>`;
+      } else if (s.status === 'synced') {
+        const remoteId = s.serverId || s.id;
+        actions = `<div class="survey-actions">
+             <button class="icon-btn" onclick="editSurvey('${remoteId}')">Edit</button>
+             <button class="icon-btn danger" onclick="deleteSurvey('${remoteId}', '${safeName}')">Delete</button>
+           </div>`;
+      }
+
       return `<div class="survey-item">
         <div class="${avatarCls}">${initials}</div>
         <div class="survey-body">
@@ -210,10 +248,95 @@
         </div>
         <div class="survey-right">
           <span class="badge ${badgeClass}">${badgeText}</span>
+          ${actions}
           <span class="survey-date">${dateStr}</span>
         </div>
       </div>`;
     }).join('');
+  }
+
+  function editSurvey(id) {
+    window.location.href = `/form.html?id=${encodeURIComponent(id)}`;
+  }
+
+  async function deleteSurvey(id, name) {
+    const label = name || 'this survey';
+    if (!confirm(`Delete "${label}"? This action cannot be undone.`)) return;
+
+    const local = SurveyStorage.findSurvey(id);
+    if (local && local.status !== 'synced') {
+      SurveyStorage.removeSurvey(id);
+      toast('Local survey deleted');
+      render();
+      return;
+    }
+
+    const res = await API.surveys.delete(id);
+    if (!res.ok) {
+      if (res.status === 401) {
+        SurveyStorage.clearUser();
+        window.location.href = '/login.html';
+        return;
+      }
+      toast('Error deleting survey: ' + res.message);
+      return;
+    }
+
+    SurveyStorage.removeSurvey(id);
+    toast('Survey deleted');
+    await refreshFromServer(true);
+  }
+
+  async function publishSurvey(id) {
+    const record = SurveyStorage.findSurvey(id);
+    if (!record) {
+      toast('Survey not found');
+      return;
+    }
+
+    if (!record.name || !record.sector || !record.educationalLevel) {
+      toast('Complete required fields before publishing');
+      editSurvey(id);
+      return;
+    }
+
+    const payload = {
+      name: record.name,
+      sector: record.sector,
+      educationalLevel: record.educationalLevel,
+      latitude: record.latitude ?? null,
+      longitude: record.longitude ?? null,
+      photoBase64: record.photoBase64 || null,
+    };
+
+    if (!navigator.onLine) {
+      SurveyStorage.updateSurvey(id, { status: 'pending' });
+      toast('No connection: survey queued for sync');
+      render();
+      return;
+    }
+
+    const res = await API.surveys.create(payload);
+    if (!res.ok) {
+      if (res.status === 401) {
+        SurveyStorage.clearUser();
+        window.location.href = '/login.html';
+        return;
+      }
+
+      SurveyStorage.updateSurvey(id, { status: 'pending' });
+      toast(`Could not publish now (${res.message}) — queued for sync`);
+      render();
+      return;
+    }
+
+    SurveyStorage.updateSurvey(id, {
+      status: 'synced',
+      serverId: res.data?.form?.id || record.serverId || id,
+      updatedAt: new Date().toISOString()
+    });
+    toast('Survey published');
+    render();
   }
 
   async function syncNow() {
@@ -223,7 +346,7 @@
     const result = await API.syncQueue();
 
     if (result.authExpired) {
-      Storage.clearUser();
+      SurveyStorage.clearUser();
       window.location.href = '/login.html';
       return;
     }
@@ -242,10 +365,10 @@
     render();
   }
 
-  async function refreshFromServer() {
+  async function refreshFromServer(silent = false) {
     if (!navigator.onLine) { toast('Sin conexión'); return; }
 
-    toast('Descargando encuestas...');
+    if (!silent) toast('Descargando encuestas...');
     const res = await API.surveys.getAll();
 
     if (!res.ok) {
@@ -253,38 +376,26 @@
       return;
     }
 
-    const serverSurveys = res.data.forms || [];
-    let localSurveys = SurveyStorage.loadSurveys();
+    const serverSurveys = (res.data.forms || []).map(serverForm => ({
+      id: serverForm.id,
+      name: serverForm.name,
+      sector: serverForm.sector,
+      educationalLevel: serverForm.educationalLevel,
+      latitude: serverForm.latitude,
+      longitude: serverForm.longitude,
+      photoBase64: serverForm.photoBase64,
+      userId: serverForm.userId,
+      username: serverForm.username,
+      createdAt: serverForm.createdAt,
+      updatedAt: serverForm.updatedAt,
+      status: 'synced',
+      serverId: serverForm.id
+    }));
 
-    const serverIds = new Set(serverSurveys.map(s => s.id));
-    localSurveys = localSurveys.filter(s => !serverIds.has(s.id) || s.status !== 'synced');
+    const localDrafts = SurveyStorage.loadSurveys().filter(s => s.status !== 'synced');
+    SurveyStorage.saveSurveys([...localDrafts, ...serverSurveys]);
 
-    for (const serverForm of serverSurveys) {
-      const alreadyLocal = localSurveys.find(s => s.id === serverForm.id);
-      if (!alreadyLocal) {
-        localSurveys.push({
-          id: serverForm.id,
-          name: serverForm.name,
-          sector: serverForm.sector,
-          educationalLevel: serverForm.educationalLevel,
-          latitude: serverForm.latitude,
-          longitude: serverForm.longitude,
-          photoBase64: serverForm.photoBase64,
-          userId: serverForm.userId,
-          username: serverForm.username,
-          createdAt: serverForm.createdAt,
-          status: 'synced',
-          serverId: serverForm.id
-        });
-      }
-    }
-
-    try {
-      localStorage.setItem('fieldform_surveys', JSON.stringify(localSurveys));
-    } catch (e) {
-      console.error('Error saving surveys:', e);
-    }
-    toast(`[OK] ${serverSurveys.length} encuesta(s) descargada(s)`);
+    if (!silent) toast(`[OK] ${serverSurveys.length} encuesta(s) descargada(s)`);
     render();
   }
 
@@ -292,6 +403,10 @@
   window.addEventListener('offline', render);
 
   render();
+
+  if (navigator.onLine) {
+    refreshFromServer(true);
+  }
 
   const shouldAutoRefresh = sessionStorage.getItem('fieldform_refresh_dashboard') === '1';
   if (shouldAutoRefresh) {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FieldForm — New Survey</title>
+  <title>FieldForm — Survey Form</title>
   <link rel="stylesheet" href="/css/style.css">
   <style>
     body { display: flex; flex-direction: column; }
@@ -100,7 +100,7 @@
   <button class="btn-back" onclick="window.history.back()">
     <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
-  <div class="form-top-title">New Survey</div>
+  <div class="form-top-title" id="form-title">New Survey</div>
 </div>
 
 <div class="page-content narrow">
@@ -138,14 +138,14 @@
         <input type="text" id="f-sector" placeholder="e.g. Villa Mella" oninput="updateProgress()">
       </div>
       <div class="field">
-        <label>Nivel Educativo <span style="color:var(--clay)">*</span></label>
+        <label>Education Level <span style="color:var(--clay)">*</span></label>
         <select id="f-edu" onchange="updateProgress()">
-          <option value="">Seleccione nivel…</option>
-          <option value="PRIMARIA">Primaria</option>
-          <option value="SECUNDARIA">Secundaria</option>
-          <option value="UNIVERSIDAD">Universidad</option>
-          <option value="POSTGRADO">Postgrado</option>
-          <option value="DOCTORADO">Doctorado</option>
+          <option value="">Select level…</option>
+          <option value="PRIMARIA">Primary</option>
+          <option value="SECUNDARIA">Secondary</option>
+          <option value="UNIVERSIDAD">University</option>
+          <option value="POSTGRADO">Postgraduate</option>
+          <option value="DOCTORADO">Doctoral</option>
         </select>
       </div>
     </div>
@@ -203,9 +203,9 @@
   <!-- Submit -->
   <div class="submit-row">
     <button class="btn-secondary" onclick="saveDraft()">Save Draft</button>
-    <button class="btn-submit" id="submit-btn" onclick="submitForm()">
+      <button class="btn-submit" id="submit-btn" onclick="submitForm()">
       <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-      Submit Survey
+        <span id="submit-label">Submit Survey</span>
     </button>
   </div>
 </div>
@@ -219,6 +219,8 @@
   const user = requireAuth();
   let photoData = null;
   let isSubmitting = false;
+  let editingId = null;
+  let editingRecord = null;
 
   function updateProgress() {
     const fields = [
@@ -301,12 +303,87 @@
     };
   }
 
+  function buildApiPayload() {
+    return {
+      name: document.getElementById('f-name').value.trim(),
+      sector: document.getElementById('f-sector').value.trim(),
+      educationalLevel: document.getElementById('f-edu').value,
+      latitude: parseFloat(document.getElementById('f-lat').value) || null,
+      longitude: parseFloat(document.getElementById('f-lng').value) || null,
+      photoBase64: photoData || null,
+    };
+  }
+
+  function applyFormData(form) {
+    document.getElementById('f-name').value = form.name || '';
+    document.getElementById('f-sector').value = form.sector || '';
+    document.getElementById('f-edu').value = form.educationalLevel || '';
+    document.getElementById('f-lat').value = form.latitude ?? '';
+    document.getElementById('f-lng').value = form.longitude ?? '';
+
+    if (form.photoBase64) {
+      photoData = form.photoBase64;
+      document.getElementById('photo-img').src = form.photoBase64;
+      document.getElementById('photo-preview').style.display = 'block';
+      document.getElementById('photo-upload-area').style.display = 'none';
+    }
+    updateProgress();
+  }
+
+  async function loadEditDataIfNeeded() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) return;
+
+    editingId = id;
+    editingRecord = SurveyStorage.findSurvey(id);
+    document.getElementById('form-title').textContent = 'Edit Survey';
+    document.getElementById('submit-label').textContent = 'Update Survey';
+
+    if (editingRecord && editingRecord.status !== 'synced') {
+      applyFormData(editingRecord);
+      return;
+    }
+
+    if (!navigator.onLine) {
+      toast('No internet connection: cannot load survey for editing');
+      return;
+    }
+
+    const res = await API.surveys.getById(id);
+    if (!res.ok) {
+      if (res.status === 401) {
+        SurveyStorage.clearUser();
+        window.location.href = '/login.html';
+        return;
+      }
+      toast('Could not load survey: ' + res.message);
+      return;
+    }
+
+    applyFormData(res.data.form || {});
+  }
+
   /* ── SAVE DRAFT ────────────────────────── */
   function saveDraft() {
     if (!document.getElementById('f-name').value.trim()) { toast('Enter at least a name to save a draft'); return; }
-    Storage.addSurvey({ ...buildPayload(), status: 'local' });
+
+    const payload = buildPayload();
+    if (editingRecord && editingRecord.status !== 'synced') {
+      SurveyStorage.updateSurvey(editingId, {
+        ...payload,
+        id: editingId,
+        status: 'local',
+        createdAt: editingRecord.createdAt || payload.createdAt,
+        updatedAt: new Date().toISOString()
+      });
+    } else {
+      SurveyStorage.addSurvey({ ...payload, status: 'local' });
+    }
+
     document.getElementById('save-indicator').classList.add('visible');
     toast('Draft saved to device');
+    goToDashboard();
   }
 
   async function submitForm() {
@@ -322,39 +399,115 @@
 
     try {
       const payload = buildPayload();
+      const apiPayload = buildApiPayload();
+
+      if (editingId) {
+        if (editingRecord && editingRecord.status !== 'synced') {
+          if (navigator.onLine) {
+            const createRes = await API.surveys.create(apiPayload);
+            if (!createRes.ok) {
+              if (createRes.status === 401) {
+                SurveyStorage.clearUser();
+                window.location.href = '/login.html';
+                return;
+              }
+
+              SurveyStorage.updateSurvey(editingId, {
+                ...payload,
+                id: editingId,
+                status: 'pending',
+                createdAt: editingRecord.createdAt || payload.createdAt,
+                updatedAt: new Date().toISOString()
+              });
+              toast(`Error publishing survey (${createRes.message}) — queued for sync`);
+              goToDashboard();
+              return;
+            }
+
+            SurveyStorage.updateSurvey(editingId, {
+              ...payload,
+              id: editingId,
+              status: 'synced',
+              serverId: createRes.data?.form?.id,
+              createdAt: editingRecord.createdAt || payload.createdAt,
+              updatedAt: new Date().toISOString()
+            });
+            toast('Survey published');
+            goToDashboard();
+            return;
+          }
+
+          SurveyStorage.updateSurvey(editingId, {
+            ...payload,
+            id: editingId,
+            status: 'pending',
+            createdAt: editingRecord.createdAt || payload.createdAt,
+            updatedAt: new Date().toISOString()
+          });
+          toast('No connection: survey queued for sync');
+          goToDashboard();
+          return;
+        }
+
+        if (!navigator.onLine) {
+          toast('No internet connection: cannot update right now');
+          return;
+        }
+
+        const updateRes = await API.surveys.update(editingId, apiPayload);
+        if (!updateRes.ok) {
+          if (updateRes.status === 401) {
+            SurveyStorage.clearUser();
+            window.location.href = '/login.html';
+            return;
+          }
+          toast(`Error updating survey (${updateRes.message})`);
+          return;
+        }
+
+        SurveyStorage.upsertSurvey({
+          ...payload,
+          id: editingId,
+          serverId: editingId,
+          status: 'synced'
+        });
+        toast('Survey updated');
+        goToDashboard();
+        return;
+      }
 
       if (navigator.onLine) {
-        const res = await API.surveys.create(payload);
+        const res = await API.surveys.create(apiPayload);
 
         if (res.ok) {
-          Storage.addSurvey({ ...payload, status: 'synced', serverId: res.data?.form?.id });
-          toast('¡Encuesta enviada!');
+          SurveyStorage.addSurvey({ ...payload, status: 'synced', serverId: res.data?.form?.id });
+          toast('Encuesta enviada');
           goToDashboard();
           return;
         }
 
         if (res.status === 401) {
-          Storage.clearUser();
+          SurveyStorage.clearUser();
           window.location.href = '/login.html';
           return;
         }
 
         toast(`Error al enviar (${res.message}) — guardado localmente`);
-        Storage.addSurvey({ ...payload, status: 'pending' });
+        SurveyStorage.addSurvey({ ...payload, status: 'pending' });
         goToDashboard();
         return;
       }
 
-      Storage.addSurvey({ ...payload, status: 'pending' });
-      toast('Sin conexión — guardado localmente, se sincronizará al reconectarse');
+      SurveyStorage.addSurvey({ ...payload, status: 'pending' });
+      toast('Sin conexion — guardado localmente, se sincronizara al reconectarse');
       goToDashboard();
     } catch (err) {
       console.error('[submitForm] Error inesperado', err);
       try {
         const payload = buildPayload();
-        Storage.addSurvey({ ...payload, status: 'pending' });
+        SurveyStorage.addSurvey({ ...payload, status: 'pending' });
       } catch (_) {}
-      toast('Ocurrió un error, pero se guardó localmente');
+      toast('Ocurrio un error, pero se guardo localmente');
       goToDashboard();
     } finally {
       setTimeout(() => {
@@ -363,6 +516,9 @@
       }, 500);
     }
   }
+
+  loadEditDataIfNeeded();
+  updateProgress();
 </script>
 </body>
 </html>

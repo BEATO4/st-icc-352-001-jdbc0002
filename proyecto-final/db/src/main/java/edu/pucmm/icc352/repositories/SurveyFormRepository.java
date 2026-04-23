@@ -40,8 +40,9 @@ public class SurveyFormRepository {
         collection.createIndex(Indexes.ascending("userId"));
         // Create index on createdAt for sorting
         collection.createIndex(Indexes.descending("createdAt"));
-        // Create 2dsphere index for geospatial queries (optional, for future use)
-        collection.createIndex(Indexes.geo2dsphere("location"));
+        // Indexes for coordinate filters/sorts (lat/lon are simple doubles, not GeoJSON)
+        collection.createIndex(Indexes.ascending("latitude"));
+        collection.createIndex(Indexes.ascending("longitude"));
         logger.info("Created indexes on survey_forms collection");
     }
 

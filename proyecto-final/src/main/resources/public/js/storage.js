@@ -28,6 +28,30 @@ const SurveyStorage = (() => {
     localStorage.setItem(SURVEYS_KEY, JSON.stringify(surveys));
   }
 
+  function addSurvey(survey) {
+    const surveys = loadSurveys();
+    surveys.unshift(survey);
+    saveSurveys(surveys);
+    return survey;
+  }
+
+  /** Insert or replace a record by id/serverId to keep cache in sync. */
+  function upsertSurvey(survey) {
+    const surveys = loadSurveys();
+    const idx = surveys.findIndex(s =>
+      s.id === survey.id ||
+      (s.serverId && survey.id && s.serverId === survey.id) ||
+      (survey.serverId && s.id === survey.serverId)
+    );
+
+    if (idx >= 0) {
+      surveys[idx] = { ...surveys[idx], ...survey };
+    } else {
+      surveys.unshift(survey);
+    }
+    saveSurveys(surveys);
+  }
+
   /** Update an existing record by its local id. */
   function updateSurvey(id, patch) {
     const surveys = loadSurveys().map(s =>
@@ -36,10 +60,33 @@ const SurveyStorage = (() => {
     saveSurveys(surveys);
   }
 
+  /** Find one record by local id or server id. */
+  function findSurvey(id) {
+    return loadSurveys().find(s => s.id === id || s.serverId === id) || null;
+  }
+
+  /** Remove a record by local id or server id. */
+  function removeSurvey(id) {
+    const surveys = loadSurveys().filter(s => s.id !== id && s.serverId !== id);
+    saveSurveys(surveys);
+  }
+
   /** Returns only the records that still need to be sent to the server. */
   function getPendingQueue() {
     return loadSurveys().filter(s => s.status === 'pending');
   }
 
-  return { saveUser, loadUser, clearUser, loadSurveys, saveSurveys, updateSurvey, getPendingQueue };
+  return {
+    saveUser,
+    loadUser,
+    clearUser,
+    loadSurveys,
+    saveSurveys,
+    addSurvey,
+    upsertSurvey,
+    updateSurvey,
+    findSurvey,
+    removeSurvey,
+    getPendingQueue
+  };
 })();

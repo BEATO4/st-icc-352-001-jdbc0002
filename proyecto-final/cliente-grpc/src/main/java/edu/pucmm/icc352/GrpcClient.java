@@ -117,6 +117,68 @@ public class GrpcClient {
         }
     }
 
+    public ActualizarFormularioResponse actualizarFormulario(
+            String id,
+            String name,
+            String sector,
+            String educationalLevel,
+            double latitude,
+            double longitude,
+            String photoBase64) {
+
+        try {
+            logger.info("Actualizando formulario: {}", id);
+
+            ActualizarFormularioRequest request = ActualizarFormularioRequest.newBuilder()
+                    .setId(id)
+                    .setName(name)
+                    .setSector(sector)
+                    .setEducationalLevel(educationalLevel)
+                    .setLatitude(latitude)
+                    .setLongitude(longitude)
+                    .setPhotoBase64(photoBase64 != null ? photoBase64 : "")
+                    .build();
+
+            ActualizarFormularioResponse response = stub.actualizarFormulario(request);
+
+            if (response.getSuccess()) {
+                logger.info("Formulario actualizado exitosamente");
+            } else {
+                logger.warn("Error al actualizar formulario: {}", response.getMessage());
+            }
+
+            return response;
+
+        } catch (Exception e) {
+            logger.error("Error al actualizar formulario", e);
+            throw new RuntimeException("Error al actualizar formulario: " + e.getMessage(), e);
+        }
+    }
+
+    public EliminarFormularioResponse eliminarFormulario(String id) {
+        try {
+            logger.info("Eliminando formulario: {}", id);
+
+            EliminarFormularioRequest request = EliminarFormularioRequest.newBuilder()
+                    .setId(id)
+                    .build();
+
+            EliminarFormularioResponse response = stub.eliminarFormulario(request);
+
+            if (response.getSuccess()) {
+                logger.info("Formulario eliminado exitosamente");
+            } else {
+                logger.warn("Error al eliminar formulario: {}", response.getMessage());
+            }
+
+            return response;
+
+        } catch (Exception e) {
+            logger.error("Error al eliminar formulario", e);
+            throw new RuntimeException("Error al eliminar formulario: " + e.getMessage(), e);
+        }
+    }
+
     public void cerrar() {
         try {
             logger.info("Cerrando conexión gRPC...");
@@ -135,4 +197,3 @@ public class GrpcClient {
         return channel != null && !channel.isShutdown();
     }
 }
-

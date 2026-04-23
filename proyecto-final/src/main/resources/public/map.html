@@ -277,11 +277,17 @@
   initSyncPill();
 
   const EDU = {
-    PRIMARY:           'Básico',
-    SECONDARY:         'Medio',
-    UNIVERSITY_DEGREE: 'Grado Universitario',
-    POSTGRADUATE:      'Postgrado',
-    DOCTORAL:          'Doctorado'
+    PRIMARIA:           'Primaria',
+    SECUNDARIA:         'Secundaria',
+    SECONDARIA:         'Secundaria',
+    UNIVERSIDAD:        'Universidad',
+    POSTGRADO:          'Postgrado',
+    DOCTORADO:          'Doctorado',
+    PRIMARY:            'Primaria',
+    SECONDARY:          'Secundaria',
+    UNIVERSITY_DEGREE:  'Universidad',
+    POSTGRADUATE:       'Postgrado',
+    DOCTORAL:           'Doctorado'
   };
 
   /* ── State ────────────────────────────────────── */
@@ -334,7 +340,7 @@
     const res = await API.surveys.getAll();
     if (!res.ok) {
       if (res.status === 401) {
-        Storage.clearUser();
+        SurveyStorage.clearUser();
         window.location.href = '/login.html';
         return;
       }
@@ -352,7 +358,7 @@
   }
 
   function loadLocal() {
-    allRecords = Storage.loadSurveys()
+    allRecords = SurveyStorage.loadSurveys()
             .filter(s => s.status !== 'synced')
             .map(s => ({
               id:               s.id,

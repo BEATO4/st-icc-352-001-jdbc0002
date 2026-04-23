@@ -125,12 +125,19 @@ public class SurveyFormService {
      * Validate educational level
      */
     public boolean isValidEducationalLevel(String level) {
-        return level != null && (
-                level.equalsIgnoreCase("PRIMARIA") ||
-                level.equalsIgnoreCase("SECONDARIA") ||
-                level.equalsIgnoreCase("UNIVERSIDAD") ||
-                level.equalsIgnoreCase("POSTGRADO") ||
-                level.equalsIgnoreCase("DOCTORADO")
-        );
+        if (level == null) return false;
+        String value = level.trim().toUpperCase();
+        return value.equals("PRIMARIA")
+                || value.equals("SECUNDARIA")
+                || value.equals("SECONDARIA")
+                || value.equals("UNIVERSIDAD")
+                || value.equals("POSTGRADO")
+                || value.equals("DOCTORADO")
+                // compatibilidad con datos legacy
+                || value.equals("PRIMARY")
+                || value.equals("SECONDARY")
+                || value.equals("UNIVERSITY_DEGREE")
+                || value.equals("POSTGRADUATE")
+                || value.equals("DOCTORAL");
     }
 }

@@ -60,19 +60,19 @@ public class EncuestaServiceImpl extends EncuestaServiceGrpc.EncuestaServiceImpl
         try {
             logger.info("Crear formulario para usuario: {}", request.getUsername());
 
-            if (request.getName() == null || request.getName().isBlank()) {
+            if (request.getName().isBlank()) {
                 responseObserver.onError(Status.INVALID_ARGUMENT
                         .withDescription("El nombre del formulario es requerido").asException());
                 return;
             }
 
-            if (request.getSector() == null || request.getSector().isBlank()) {
+            if (request.getSector().isBlank()) {
                 responseObserver.onError(Status.INVALID_ARGUMENT
                         .withDescription("El sector es requerido").asException());
                 return;
             }
 
-            if (request.getEducationalLevel() == null || request.getEducationalLevel().isBlank()) {
+            if (request.getEducationalLevel().isBlank()) {
                 responseObserver.onError(Status.INVALID_ARGUMENT
                         .withDescription("El nivel educativo es requerido").asException());
                 return;
@@ -137,6 +137,90 @@ public class EncuestaServiceImpl extends EncuestaServiceGrpc.EncuestaServiceImpl
                             .withDescription("Error al listar formularios: " + e.getMessage())
                             .asException()
             );
+        }
+    }
+
+    @Override
+    public void actualizarFormulario(ActualizarFormularioRequest request, StreamObserver<ActualizarFormularioResponse> responseObserver) {
+        try {
+            logger.info("Actualizar formulario: {}", request.getId());
+
+            var formOpt = surveyFormService.getFormById(request.getId());
+            if (formOpt.isEmpty()) {
+                responseObserver.onError(Status.NOT_FOUND
+                        .withDescription("Formulario no encontrado").asException());
+                return;
+            }
+
+            SurveyForm form = formOpt.get();
+
+            if (!request.getName().isBlank())
+                form.setName(request.getName());
+            if (!request.getSector().isBlank())
+                form.setSector(request.getSector());
+            if (!request.getEducationalLevel().isBlank())
+                form.setEducationalLevel(request.getEducationalLevel());
+            if (request.getLatitude() != 0)
+                form.setLatitude(request.getLatitude());
+            if (request.getLongitude() != 0)
+                form.setLongitude(request.getLongitude());
+            if (!request.getPhotoBase64().isBlank())
+                form.setPhotoBase64(request.getPhotoBase64());
+
+            boolean updated = surveyFormService.updateForm(form);
+
+            if (updated) {
+                ActualizarFormularioResponse response = ActualizarFormularioResponse.newBuilder()
+                        .setSuccess(true)
+                        .setMessage("Formulario actualizado exitosamente")
+                        .setFormulario(mapToFormularioMessage(form))
+                        .build();
+                responseObserver.onNext(response);
+            } else {
+                responseObserver.onError(Status.INTERNAL
+                        .withDescription("Error al actualizar el formulario").asException());
+                return;
+            }
+
+            responseObserver.onCompleted();
+
+        } catch (Exception e) {
+            logger.error("Error al actualizar formulario", e);
+            responseObserver.onError(Status.INTERNAL
+                    .withDescription("Error al actualizar formulario: " + e.getMessage()).asException());
+        }
+    }
+
+    @Override
+    public void eliminarFormulario(EliminarFormularioRequest request, StreamObserver<EliminarFormularioResponse> responseObserver) {
+        try {
+            logger.info("Eliminar formulario: {}", request.getId());
+
+            var formOpt = surveyFormService.getFormById(request.getId());
+            if (formOpt.isEmpty()) {
+                responseObserver.onError(Status.NOT_FOUND
+                        .withDescription("Formulario no encontrado").asException());
+                return;
+            }
+
+            boolean deleted = surveyFormService.deleteForm(request.getId());
+
+            if (deleted) {
+                EliminarFormularioResponse response = EliminarFormularioResponse.newBuilder()
+                        .setSuccess(true)
+                        .setMessage("Formulario eliminado exitosamente")
+                        .build();
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+            } else {
+                responseObserver.onError(Status.INTERNAL
+                        .withDescription("Error al eliminar el formulario").asException());
+            }
+
+        } catch (Exception e) {
+            logger.error("Error al eliminar formulario", e);
+            responseObserver.onError(Status.INTERNAL
+                    .withDescription("Error al eliminar formulario: " + e.getMessage()).asException());
         }
     }
 

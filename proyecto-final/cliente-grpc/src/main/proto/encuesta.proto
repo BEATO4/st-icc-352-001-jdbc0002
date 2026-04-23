@@ -10,6 +10,8 @@ service EncuestaService {
   rpc ListarFormularios(ListarRequest) returns (ListarResponse);
   rpc CrearFormulario(CrearFormularioRequest) returns (CrearFormularioResponse);
   rpc ListarTodos(ListarTodosRequest) returns (ListarResponse);
+  rpc ActualizarFormulario(ActualizarFormularioRequest) returns (ActualizarFormularioResponse);
+  rpc EliminarFormulario(EliminarFormularioRequest) returns (EliminarFormularioResponse);
 }
 
 message ListarRequest {
@@ -55,5 +57,30 @@ message CrearFormularioResponse {
   bool success = 1;
   string message = 2;
   string id = 3;
+}
+
+message ActualizarFormularioRequest {
+  string id = 1;
+  string name = 2;
+  string sector = 3;
+  string educational_level = 4;
+  double latitude = 5;
+  double longitude = 6;
+  string photo_base64 = 7;
+}
+
+message ActualizarFormularioResponse {
+  bool success = 1;
+  string message = 2;
+  FormularioMessage formulario = 3;
+}
+
+message EliminarFormularioRequest {
+  string id = 1;
+}
+
+message EliminarFormularioResponse {
+  bool success = 1;
+  string message = 2;
 }
 

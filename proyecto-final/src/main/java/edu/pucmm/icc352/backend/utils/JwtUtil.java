@@ -16,7 +16,11 @@ import java.util.Date;
 public class JwtUtil {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
 
-    private static final String SECRET_STRING = "MySecureJWTSecret1234567890123456"; // 32+ chars for HS256
+    private static final String DEFAULT_SECRET = "MySecureJWTSecret1234567890123456"; // 32+ chars for HS256
+    private static final String SECRET_STRING =
+            System.getenv("JWT_SECRET") != null && !System.getenv("JWT_SECRET").isBlank()
+                    ? System.getenv("JWT_SECRET")
+                    : DEFAULT_SECRET;
     private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(SECRET_STRING.getBytes());
 
     private static final long EXPIRATION_TIME = 1000L * 60 * 60 * 24;

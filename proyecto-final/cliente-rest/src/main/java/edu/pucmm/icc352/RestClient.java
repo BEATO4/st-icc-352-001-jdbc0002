@@ -2,8 +2,10 @@ package edu.pucmm.icc352;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpPut;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ClassicHttpResponse;
@@ -202,6 +204,73 @@ public class RestClient {
         }
     }
 
+    public CrearFormularioResponse actualizarFormulario(String id, String name, String sector, String educationalLevel,
+                                                        double latitude, double longitude, String photoBase64) {
+        try {
+            logger.info("Actualizando formulario: {}", id);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("name", name);
+            body.put("sector", sector);
+            body.put("educationalLevel", educationalLevel);
+            body.put("latitude", latitude);
+            body.put("longitude", longitude);
+            if (photoBase64 != null && !photoBase64.isEmpty()) {
+                body.put("photoBase64", photoBase64);
+            }
+
+            String jsonBody = objectMapper.writeValueAsString(body);
+            HttpPut request = new HttpPut(baseUrl + "/api/surveys/" + id);
+            request.setEntity(new StringEntity(jsonBody, ContentType.APPLICATION_JSON));
+            addAuthHeader(request);
+
+            ClassicHttpResponse response = httpClient.executeOpen(null, request, null);
+            String responseBody = EntityUtils.toString(response.getEntity());
+
+            if (response.getCode() == 200) {
+                JsonNode jsonResponse = objectMapper.readTree(responseBody);
+                logger.info("Formulario actualizado exitosamente");
+                return new CrearFormularioResponse(true, id, "OK");
+            } else if (response.getCode() == 401) {
+                throw new RuntimeException("SESION_EXPIRADA");
+            } else {
+                logger.warn("Error al actualizar formulario: codigo {}", response.getCode());
+                return new CrearFormularioResponse(false, null, "Error");
+            }
+
+        } catch (Exception e) {
+            logger.error("Error al actualizar formulario", e);
+            if (e instanceof RuntimeException) throw (RuntimeException) e;
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean eliminarFormulario(String id) {
+        try {
+            logger.info("Eliminando formulario: {}", id);
+
+            HttpDelete request = new HttpDelete(baseUrl + "/api/surveys/" + id);
+            addAuthHeader(request);
+
+            ClassicHttpResponse response = httpClient.executeOpen(null, request, null);
+
+            if (response.getCode() == 200) {
+                logger.info("Formulario eliminado exitosamente");
+                return true;
+            } else if (response.getCode() == 401) {
+                throw new RuntimeException("SESION_EXPIRADA");
+            } else {
+                logger.warn("Error al eliminar formulario: codigo {}", response.getCode());
+                return false;
+            }
+
+        } catch (Exception e) {
+            logger.error("Error al eliminar formulario", e);
+            if (e instanceof RuntimeException) throw (RuntimeException) e;
+            throw new RuntimeException(e);
+        }
+    }
+
     private FormularioDTO parseFormulario(JsonNode node) {
         String id = node.has("_id") ? node.path("_id").asText() : node.path("id").asText();
         String photo = node.has("photoBase64") && !node.get("photoBase64").isNull()
@@ -229,6 +298,18 @@ public class RestClient {
     }
 
     private void addAuthHeader(HttpPost request) {
+        if (authToken != null && !authToken.isEmpty()) {
+            request.setHeader("Authorization", "Bearer " + authToken);
+        }
+    }
+
+    private void addAuthHeader(HttpPut request) {
+        if (authToken != null && !authToken.isEmpty()) {
+            request.setHeader("Authorization", "Bearer " + authToken);
+        }
+    }
+
+    private void addAuthHeader(HttpDelete request) {
         if (authToken != null && !authToken.isEmpty()) {
             request.setHeader("Authorization", "Bearer " + authToken);
         }

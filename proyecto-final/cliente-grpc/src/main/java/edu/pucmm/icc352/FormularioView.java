@@ -89,26 +89,51 @@ public class FormularioView {
 
         TableColumn<FormularioRow, String> nombreCol = new TableColumn<>("Nombre");
         nombreCol.setCellValueFactory(new PropertyValueFactory<>("nombre"));
-        nombreCol.setPrefWidth(120);
+        nombreCol.setPrefWidth(100);
 
         TableColumn<FormularioRow, String> sectorCol = new TableColumn<>("Sector");
         sectorCol.setCellValueFactory(new PropertyValueFactory<>("sector"));
-        sectorCol.setPrefWidth(100);
+        sectorCol.setPrefWidth(90);
 
         TableColumn<FormularioRow, String> nivelCol = new TableColumn<>("Nivel Educativo");
         nivelCol.setCellValueFactory(new PropertyValueFactory<>("nivelEducativo"));
-        nivelCol.setPrefWidth(130);
+        nivelCol.setPrefWidth(120);
 
-        TableColumn<FormularioRow, String> fotoCol = new TableColumn<>("¿Foto?");
+        TableColumn<FormularioRow, String> fotoCol = new TableColumn<>("Foto");
         fotoCol.setCellValueFactory(new PropertyValueFactory<>("tieneFoto"));
-        fotoCol.setPrefWidth(70);
+        fotoCol.setPrefWidth(60);
 
-        TableColumn<FormularioRow, String> fechaCol = new TableColumn<>("Fecha Creación");
+        TableColumn<FormularioRow, String> fechaCol = new TableColumn<>("Fecha Creacion");
         fechaCol.setCellValueFactory(new PropertyValueFactory<>("fechaCreacion"));
-        fechaCol.setPrefWidth(150);
+        fechaCol.setPrefWidth(130);
 
-        table.getColumns().addAll(nombreCol, sectorCol, nivelCol, fotoCol, fechaCol);
+        TableColumn<FormularioRow, Void> accionesCol = new TableColumn<>("Acciones");
+        accionesCol.setPrefWidth(140);
+        accionesCol.setCellFactory(col -> new TableCell<>() {
+            private final Button editBtn = new Button("Editar");
+            private final Button deleteBtn = new Button("Eliminar");
+            private final HBox box = new HBox(6, editBtn, deleteBtn);
 
+            {
+                editBtn.setStyle("-fx-font-size:10px; -fx-padding:4px 8px; -fx-background-color:#2196F3; -fx-text-fill:white;");
+                deleteBtn.setStyle("-fx-font-size:10px; -fx-padding:4px 8px; -fx-background-color:#f44336; -fx-text-fill:white;");
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || getTableRow().getItem() == null) {
+                    setGraphic(null);
+                    return;
+                }
+                FormularioRow row = getTableRow().getItem();
+                editBtn.setOnAction(e -> abrirDialogoEditarFormulario(row));
+                deleteBtn.setOnAction(e -> confirmarEliminarFormulario(row));
+                setGraphic(box);
+            }
+        });
+
+        table.getColumns().setAll(nombreCol, sectorCol, nivelCol, fotoCol, fechaCol, accionesCol);
         return table;
     }
 
@@ -133,11 +158,15 @@ public class FormularioView {
                     for (FormularioMessage fm : formularios) {
                         System.out.println("  - " + fm.getName() + " (userId: " + fm.getUserId() + ")");
                         tableView.getItems().add(new FormularioRow(
+                                fm.getId(),
                                 fm.getName(),
                                 fm.getSector(),
                                 fm.getEducationalLevel(),
-                                fm.getPhotoBase64().isEmpty() ? "No" : "Sí",
-                                fm.getCreatedAt()
+                                fm.getPhotoBase64().isEmpty() ? "No" : "Si",
+                                fm.getCreatedAt(),
+                                fm.getLatitude(),
+                                fm.getLongitude(),
+                                fm.getPhotoBase64()
                         ));
                     }
 
@@ -146,46 +175,48 @@ public class FormularioView {
 
             } catch (Exception ex) {
                 System.out.println("[ERROR] Error: " + ex.getMessage());
-                ex.printStackTrace();
                 actualizarStatus("[ERROR] Error: " + ex.getMessage());
                 logger.error("Error al refrescar formularios", ex);
             }
         }).start();
     }
 
-    private void listarTodosFormularios() {
-        new Thread(() -> {
-            try {
-                System.out.println("[VIEW] Buscando TODOS los formularios...");
-                actualizarStatus("Cargando todos los formularios...");
+     private void listarTodosFormularios() {
+         new Thread(() -> {
+             try {
+                 System.out.println("[VIEW] Buscando TODOS los formularios...");
+                 actualizarStatus("Cargando todos los formularios...");
 
-                List<FormularioMessage> formularios = grpcClient.listarTodos();
-                System.out.println("[OK] Respuesta recibida: " + formularios.size() + " formularios");
+                 List<FormularioMessage> formularios = grpcClient.listarTodos();
+                 System.out.println("[OK] Respuesta recibida: " + formularios.size() + " formularios");
 
-                Platform.runLater(() -> {
-                    tableView.getItems().clear();
-                    for (FormularioMessage fm : formularios) {
-                        System.out.println("  - " + fm.getName() + " (userId: " + fm.getUserId() + ", usuario: " + fm.getUsername() + ")");
-                        tableView.getItems().add(new FormularioRow(
-                                fm.getName(),
-                                fm.getSector(),
-                                fm.getEducationalLevel(),
-                                fm.getPhotoBase64().isEmpty() ? "No" : "Sí",
-                                fm.getCreatedAt()
-                        ));
-                    }
+                 Platform.runLater(() -> {
+                     tableView.getItems().clear();
+                     for (FormularioMessage fm : formularios) {
+                         System.out.println("  - " + fm.getName() + " (userId: " + fm.getUserId() + ", usuario: " + fm.getUsername() + ")");
+                         tableView.getItems().add(new FormularioRow(
+                                 fm.getId(),
+                                 fm.getName(),
+                                 fm.getSector(),
+                                 fm.getEducationalLevel(),
+                                 fm.getPhotoBase64().isEmpty() ? "No" : "Si",
+                                 fm.getCreatedAt(),
+                                 fm.getLatitude(),
+                                 fm.getLongitude(),
+                                 fm.getPhotoBase64()
+                         ));
+                     }
 
-                    actualizarStatus("[OK] Se cargaron " + formularios.size() + " formularios de TODOS los usuarios");
-                });
+                     actualizarStatus("[OK] Se cargaron " + formularios.size() + " formularios de TODOS los usuarios");
+                 });
 
-            } catch (Exception ex) {
-                System.out.println("[ERROR] Error: " + ex.getMessage());
-                ex.printStackTrace();
-                actualizarStatus("[ERROR] Error: " + ex.getMessage());
-                logger.error("Error al listar todos los formularios", ex);
-            }
-        }).start();
-    }
+             } catch (Exception ex) {
+                 System.out.println("[ERROR] Error: " + ex.getMessage());
+                 actualizarStatus("[ERROR] Error: " + ex.getMessage());
+                 logger.error("Error al listar todos los formularios", ex);
+             }
+         }).start();
+     }
 
     private void abrirDialogoCrearFormulario() {
         Stage dialogStage = new Stage();
@@ -338,31 +369,170 @@ public class FormularioView {
         dialogStage.show();
     }
 
-    private void actualizarStatus(String mensaje) {
-        Platform.runLater(() -> statusLabel.setText(mensaje));
-    }
+     private void actualizarStatus(String mensaje) {
+         Platform.runLater(() -> statusLabel.setText(mensaje));
+     }
+
+     private void abrirDialogoEditarFormulario(FormularioRow row) {
+         Stage dialogStage = new Stage();
+         dialogStage.setTitle("Editar Formulario");
+
+         VBox vBox = new VBox(10);
+         vBox.setPadding(new Insets(20));
+         vBox.setStyle("-fx-background-color: #f9f9f9;");
+
+         TextField nombreField = new TextField(row.getNombre());
+         nombreField.setPromptText("Nombre");
+
+         TextField sectorField = new TextField(row.getSector());
+         sectorField.setPromptText("Sector");
+
+         ComboBox<String> nivelCombo = new ComboBox<>();
+         nivelCombo.getItems().addAll("PRIMARIA", "SECUNDARIA", "UNIVERSIDAD", "POSTGRADO", "DOCTORADO");
+         nivelCombo.setValue(row.getNivelEducativo());
+
+         TextField latField = new TextField(String.valueOf(row.getLatitud() != null ? row.getLatitud() : 0));
+         TextField lonField = new TextField(String.valueOf(row.getLongitud() != null ? row.getLongitud() : 0));
+
+         String[] photoBase64 = {row.getPhotoBase64()};
+         Label photoLabel = new Label(row.getTieneFoto().equals("Si") ? "Foto: Si" : "Sin foto");
+         Button selectPhotoBtn = new Button("Cambiar Foto");
+         selectPhotoBtn.setOnAction(e -> seleccionarFotoDialog(photoLabel, photoBase64));
+
+         vBox.getChildren().addAll(
+                 new Label("Nombre:"), nombreField,
+                 new Label("Sector:"), sectorField,
+                 new Label("Nivel Educativo:"), nivelCombo,
+                 new Label("Latitud:"), latField,
+                 new Label("Longitud:"), lonField,
+                 selectPhotoBtn, photoLabel
+         );
+
+         Button guardarButton = new Button("Guardar");
+         Button cancelarButton = new Button("Cancelar");
+         HBox buttonBox = new HBox(10, guardarButton, cancelarButton);
+         buttonBox.setStyle("-fx-alignment: center;");
+         vBox.getChildren().add(buttonBox);
+
+         guardarButton.setOnAction(e -> {
+             new Thread(() -> {
+                 try {
+                     String nombre = nombreField.getText().trim();
+                     String sector = sectorField.getText().trim();
+                     String nivel = nivelCombo.getValue();
+                     double lat = Double.parseDouble(latField.getText());
+                     double lon = Double.parseDouble(lonField.getText());
+
+                     if (nombre.isEmpty() || sector.isEmpty() || nivel == null) {
+                         actualizarStatus("[ERROR] Completa todos los campos");
+                         return;
+                     }
+
+                     actualizarStatus("Actualizando formulario...");
+                     var response = grpcClient.actualizarFormulario(row.getId(), nombre, sector, nivel, lat, lon, photoBase64[0]);
+
+                     if (response.getSuccess()) {
+                         actualizarStatus("[OK] Formulario actualizado exitosamente");
+                         refrescarFormularios();
+                         dialogStage.close();
+                     } else {
+                         actualizarStatus("[ERROR] " + response.getMessage());
+                     }
+                 } catch (Exception ex) {
+                     actualizarStatus("[ERROR] " + ex.getMessage());
+                     logger.error("Error al actualizar", ex);
+                 }
+             }).start();
+         });
+
+         cancelarButton.setOnAction(e -> dialogStage.close());
+
+         dialogStage.setWidth(480);
+         dialogStage.setHeight(600);
+         dialogStage.show();
+     }
+
+     private void confirmarEliminarFormulario(FormularioRow row) {
+         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+         alert.setTitle("Confirmar Eliminacion");
+         alert.setHeaderText("Eliminar Formulario");
+         alert.setContentText("Deseas eliminar el formulario: " + row.getNombre() + "?");
+
+         java.util.Optional<ButtonType> result = alert.showAndWait();
+         if (result.isPresent() && result.get() == ButtonType.OK) {
+             new Thread(() -> {
+                 try {
+                     actualizarStatus("Eliminando formulario...");
+                     var response = grpcClient.eliminarFormulario(row.getId());
+
+                     if (response.getSuccess()) {
+                         actualizarStatus("[OK] Formulario eliminado exitosamente");
+                         refrescarFormularios();
+                     } else {
+                         actualizarStatus("[ERROR] " + response.getMessage());
+                     }
+                 } catch (Exception ex) {
+                     actualizarStatus("[ERROR] " + ex.getMessage());
+                     logger.error("Error al eliminar", ex);
+                 }
+             }).start();
+         }
+     }
+
+     private void seleccionarFotoDialog(Label photoLabel, String[] photoBase64) {
+         FileChooser fileChooser = new FileChooser();
+         fileChooser.setTitle("Seleccionar Foto");
+         fileChooser.getExtensionFilters().addAll(
+                 new FileChooser.ExtensionFilter("Imagenes", "*.jpg", "*.jpeg", "*.png"),
+                 new FileChooser.ExtensionFilter("Todos", "*.*")
+         );
+
+         File file = fileChooser.showOpenDialog(null);
+         if (file != null) {
+             try {
+                 byte[] fileContent = Files.readAllBytes(file.toPath());
+                 photoBase64[0] = Base64.getEncoder().encodeToString(fileContent);
+                 photoLabel.setText("Foto: " + file.getName());
+             } catch (Exception ex) {
+                 actualizarStatus("[ERROR] No se pudo cargar la foto");
+             }
+         }
+     }
+
+     // ...existing code...
 
     public static class FormularioRow {
+        private final String id;
         private final String nombre;
         private final String sector;
         private final String nivelEducativo;
         private final String tieneFoto;
         private final String fechaCreacion;
+        private final Double latitud;
+        private final Double longitud;
+        private final String photoBase64;
 
-        public FormularioRow(String nombre, String sector, String nivelEducativo, String tieneFoto, String fechaCreacion) {
+        public FormularioRow(String id, String nombre, String sector, String nivelEducativo, String tieneFoto, String fechaCreacion, Double latitud, Double longitud, String photoBase64) {
+            this.id = id;
             this.nombre = nombre;
             this.sector = sector;
             this.nivelEducativo = nivelEducativo;
             this.tieneFoto = tieneFoto;
             this.fechaCreacion = fechaCreacion;
+            this.latitud = latitud;
+            this.longitud = longitud;
+            this.photoBase64 = photoBase64;
         }
 
+        public String getId() { return id; }
         public String getNombre() { return nombre; }
         public String getSector() { return sector; }
         public String getNivelEducativo() { return nivelEducativo; }
         public String getTieneFoto() { return tieneFoto; }
         public String getFechaCreacion() { return fechaCreacion; }
+        public Double getLatitud() { return latitud; }
+        public Double getLongitud() { return longitud; }
+        public String getPhotoBase64() { return photoBase64; }
     }
 }
-
 
