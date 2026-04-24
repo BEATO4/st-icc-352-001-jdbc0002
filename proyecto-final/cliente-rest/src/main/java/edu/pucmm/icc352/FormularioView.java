@@ -54,10 +54,12 @@ public class FormularioView {
         refrescarButton.setStyle("-fx-font-size: 12px; -fx-padding: 8px 15px;");
 
         Button verTodosButton = new Button("Ver Todos");
-        verTodosButton.setStyle("-fx-font-size: 12px; -fx-padding: 8px 15px; -fx-background-color: #2196F3; -fx-text-fill: white;");
+        verTodosButton.setStyle(
+                "-fx-font-size: 12px; -fx-padding: 8px 15px; -fx-background-color: #2196F3; -fx-text-fill: white;");
 
         Button crearButton = new Button("Crear Formulario");
-        crearButton.setStyle("-fx-font-size: 12px; -fx-padding: 8px 15px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
+        crearButton.setStyle(
+                "-fx-font-size: 12px; -fx-padding: 8px 15px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
 
         usuarioBox.getChildren().addAll(usuarioLabel, usuarioIdField, refrescarButton, verTodosButton, crearButton);
 
@@ -76,8 +78,7 @@ public class FormularioView {
                 usuarioBox,
                 new Separator(),
                 scrollPane,
-                statusLabel
-        );
+                statusLabel);
 
         refrescarButton.setOnAction(e -> refrescarFormularios());
         verTodosButton.setOnAction(e -> listarTodosFormularios());
@@ -120,8 +121,10 @@ public class FormularioView {
             private final HBox hbox = new HBox(5);
 
             {
-                editBtn.setStyle("-fx-font-size: 10px; -fx-padding: 5px 10px; -fx-background-color: #2196F3; -fx-text-fill: white;");
-                deleteBtn.setStyle("-fx-font-size: 10px; -fx-padding: 5px 10px; -fx-background-color: #f44336; -fx-text-fill: white;");
+                editBtn.setStyle(
+                        "-fx-font-size: 10px; -fx-padding: 5px 10px; -fx-background-color: #2196F3; -fx-text-fill: white;");
+                deleteBtn.setStyle(
+                        "-fx-font-size: 10px; -fx-padding: 5px 10px; -fx-background-color: #f44336; -fx-text-fill: white;");
                 hbox.setStyle("-fx-alignment: center;");
                 hbox.getChildren().addAll(editBtn, deleteBtn);
             }
@@ -145,39 +148,38 @@ public class FormularioView {
         return table;
     }
 
-     private void cargarFormularios() {
-         statusLabel.setText("Cargando formularios...");
+    private void cargarFormularios() {
+        statusLabel.setText("Cargando formularios...");
 
-         new Thread(() -> {
-             try {
-                 List<FormularioDTO> formularios = restClient.listarFormularios(userId);
+        new Thread(() -> {
+            try {
+                List<FormularioDTO> formularios = restClient.listarFormularios(userId);
 
-                 Platform.runLater(() -> {
-                     tableView.getItems().clear();
-                     for (FormularioDTO f : formularios) {
-                         tableView.getItems().add(new FormularioRow(
-                                 f.getId(),
-                                 f.getName(),
-                                 f.getSector(),
-                                 f.getEducationalLevel(),
-                                 f.getPhotoBase64() != null && !f.getPhotoBase64().isEmpty() ? "Si" : "No",
-                                 formatDateSafe(f.getCreatedAt()),
-                                 f.getLatitude(),
-                                 f.getLongitude(),
-                                 f.getPhotoBase64()
-                         ));
-                     }
-                     statusLabel.setText("OK - Se cargaron " + formularios.size() + " formularios");
-                 });
-             } catch (RuntimeException ex) {
-                 if (isSessionExpired(ex)) {
-                     handleSessionExpired();
-                 } else {
-                     Platform.runLater(() -> statusLabel.setText("ERROR - " + ex.getMessage()));
-                 }
-             }
-         }).start();
-     }
+                Platform.runLater(() -> {
+                    tableView.getItems().clear();
+                    for (FormularioDTO f : formularios) {
+                        tableView.getItems().add(new FormularioRow(
+                                f.getId(),
+                                f.getName(),
+                                f.getSector(),
+                                f.getEducationalLevel(),
+                                f.getPhotoBase64() != null && !f.getPhotoBase64().isEmpty() ? "Si" : "No",
+                                formatDateSafe(f.getCreatedAt()),
+                                f.getLatitude(),
+                                f.getLongitude(),
+                                f.getPhotoBase64()));
+                    }
+                    statusLabel.setText("OK - Se cargaron " + formularios.size() + " formularios");
+                });
+            } catch (RuntimeException ex) {
+                if (isSessionExpired(ex)) {
+                    handleSessionExpired();
+                } else {
+                    Platform.runLater(() -> statusLabel.setText("ERROR - " + ex.getMessage()));
+                }
+            }
+        }).start();
+    }
 
     private void refrescarFormularios() {
         String usuarioId = usuarioIdField.getText().trim();
@@ -204,8 +206,7 @@ public class FormularioView {
                                 formatDateSafe(f.getCreatedAt()),
                                 f.getLatitude(),
                                 f.getLongitude(),
-                                f.getPhotoBase64()
-                        ));
+                                f.getPhotoBase64()));
                     }
                     statusLabel.setText("OK - Se cargaron " + formularios.size() + " formularios");
                 });
@@ -238,8 +239,7 @@ public class FormularioView {
                                 formatDateSafe(f.getCreatedAt()),
                                 f.getLatitude(),
                                 f.getLongitude(),
-                                f.getPhotoBase64()
-                        ));
+                                f.getPhotoBase64()));
                     }
                     statusLabel.setText("OK - Total: " + formularios.size() + " formularios");
                 });
@@ -267,7 +267,7 @@ public class FormularioView {
         sectorField.setPromptText("Sector");
 
         ComboBox<String> levelCombo = new ComboBox<>();
-        levelCombo.getItems().addAll("PRIMARIA", "SECUNDARIA", "UNIVERSIDAD", "POSTGRADO", "DOCTORADO");
+        levelCombo.getItems().addAll("BASICO", "MEDIO", "GRADO_UNIVERSITARIO", "POSTGRADO", "DOCTORADO");
         levelCombo.setPromptText("Nivel Educativo");
 
         TextField latField = new TextField("0");
@@ -284,8 +284,7 @@ public class FormularioView {
                 new Label("Nivel Educativo:"), levelCombo,
                 new Label("Latitud:"), latField,
                 new Label("Longitud:"), lonField,
-                selectPhotoBtn, photoLabel
-        );
+                selectPhotoBtn, photoLabel);
 
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -309,8 +308,7 @@ public class FormularioView {
                 new Thread(() -> {
                     try {
                         RestClient.CrearFormularioResponse response = restClient.crearFormulario(
-                                name, sector, level, lat, lon, selectedPhotoBase64
-                        );
+                                name, sector, level, lat, lon, selectedPhotoBase64);
 
                         Platform.runLater(() -> {
                             if (response.success) {
@@ -340,8 +338,7 @@ public class FormularioView {
         fileChooser.setTitle("Seleccionar Foto");
         fileChooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("Imagenes", "*.jpg", "*.jpeg", "*.png"),
-                new FileChooser.ExtensionFilter("Todos", "*.*")
-        );
+                new FileChooser.ExtensionFilter("Todos", "*.*"));
 
         File file = fileChooser.showOpenDialog(null);
         if (file != null) {
@@ -356,13 +353,15 @@ public class FormularioView {
     }
 
     private String formatDateSafe(String createdAt) {
-        if (createdAt == null || createdAt.isEmpty()) return "";
+        if (createdAt == null || createdAt.isEmpty())
+            return "";
         return createdAt.length() >= 10 ? createdAt.substring(0, 10) : createdAt;
     }
 
     private boolean isSessionExpired(RuntimeException ex) {
         String msg = ex.getMessage();
-        if (msg != null && msg.contains("SESION_EXPIRADA")) return true;
+        if (msg != null && msg.contains("SESION_EXPIRADA"))
+            return true;
         Throwable cause = ex.getCause();
         return cause != null && cause.getMessage() != null && cause.getMessage().contains("SESION_EXPIRADA");
     }
@@ -394,8 +393,8 @@ public class FormularioView {
         TextField sectorField = new TextField(row.getSector());
 
         ComboBox<String> levelCombo = new ComboBox<>();
-        levelCombo.getItems().addAll("PRIMARIA", "SECUNDARIA", "UNIVERSIDAD", "POSTGRADO", "DOCTORADO");
-        levelCombo.setValue(row.getNivelEducativo());
+        levelCombo.getItems().addAll("BASICO", "MEDIO", "GRADO_UNIVERSITARIO", "POSTGRADO", "DOCTORADO");
+        levelCombo.setValue(normalizarNivelRest(row.getNivelEducativo()));
 
         TextField latField = new TextField(String.valueOf(row.getLatitud() != null ? row.getLatitud() : 0));
         TextField lonField = new TextField(String.valueOf(row.getLongitud() != null ? row.getLongitud() : 0));
@@ -411,8 +410,7 @@ public class FormularioView {
                 new Label("Nivel Educativo:"), levelCombo,
                 new Label("Latitud:"), latField,
                 new Label("Longitud:"), lonField,
-                selectPhotoBtn, photoLabel
-        );
+                selectPhotoBtn, photoLabel);
 
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -436,8 +434,7 @@ public class FormularioView {
                 new Thread(() -> {
                     try {
                         RestClient.CrearFormularioResponse response = restClient.actualizarFormulario(
-                                row.getId(), name, sector, level, lat, lon, selectedPhotoBase64
-                        );
+                                row.getId(), name, sector, level, lat, lon, selectedPhotoBase64);
 
                         Platform.runLater(() -> {
                             if (response.success) {
@@ -460,6 +457,15 @@ public class FormularioView {
                 statusLabel.setText("ERROR - Verifica los datos");
             }
         }
+    }
+
+    private String normalizarNivelRest(String raw) {
+        if (raw == null)
+            return "BASICO";
+        return switch (raw.trim().toUpperCase()) {
+            case "BASICO", "MEDIO", "GRADO_UNIVERSITARIO" -> raw.trim().toUpperCase();
+            default -> raw.trim().toUpperCase();
+        };
     }
 
     private void confirmarEliminarFormulario(FormularioRow row) {
@@ -495,7 +501,6 @@ public class FormularioView {
         }
     }
 
-
     public static class FormularioRow {
         private String id;
         private String nombre;
@@ -507,7 +512,8 @@ public class FormularioView {
         private Double longitud;
         private String photoBase64;
 
-        public FormularioRow(String id, String nombre, String sector, String nivelEducativo, String tieneFoto, String fechaCreacion, Double latitud, Double longitud, String photoBase64) {
+        public FormularioRow(String id, String nombre, String sector, String nivelEducativo, String tieneFoto,
+                String fechaCreacion, Double latitud, Double longitud, String photoBase64) {
             this.id = id;
             this.nombre = nombre;
             this.sector = sector;
@@ -519,14 +525,40 @@ public class FormularioView {
             this.photoBase64 = photoBase64;
         }
 
-        public String getId() { return id; }
-        public String getNombre() { return nombre; }
-        public String getSector() { return sector; }
-        public String getNivelEducativo() { return nivelEducativo; }
-        public String getTieneFoto() { return tieneFoto; }
-        public String getFechaCreacion() { return fechaCreacion; }
-        public Double getLatitud() { return latitud; }
-        public Double getLongitud() { return longitud; }
-        public String getPhotoBase64() { return photoBase64; }
+        public String getId() {
+            return id;
+        }
+
+        public String getNombre() {
+            return nombre;
+        }
+
+        public String getSector() {
+            return sector;
+        }
+
+        public String getNivelEducativo() {
+            return nivelEducativo;
+        }
+
+        public String getTieneFoto() {
+            return tieneFoto;
+        }
+
+        public String getFechaCreacion() {
+            return fechaCreacion;
+        }
+
+        public Double getLatitud() {
+            return latitud;
+        }
+
+        public Double getLongitud() {
+            return longitud;
+        }
+
+        public String getPhotoBase64() {
+            return photoBase64;
+        }
     }
 }

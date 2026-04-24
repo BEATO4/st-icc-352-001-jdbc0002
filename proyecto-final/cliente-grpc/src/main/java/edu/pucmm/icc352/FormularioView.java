@@ -20,7 +20,6 @@ import java.nio.file.Files;
 import java.util.Base64;
 import java.util.List;
 
-
 public class FormularioView {
     private static final Logger logger = LoggerFactory.getLogger(FormularioView.class);
 
@@ -49,16 +48,18 @@ public class FormularioView {
         usuarioIdField = new TextField("user1");
         usuarioIdField.setPrefWidth(200);
 
-         Button refrescarButton = new Button("[REFRESH] Refrescar");
-         refrescarButton.setStyle("-fx-font-size: 12px; -fx-padding: 8px 15px;");
+        Button refrescarButton = new Button("[REFRESH] Refrescar");
+        refrescarButton.setStyle("-fx-font-size: 12px; -fx-padding: 8px 15px;");
 
-         Button verTodosButton = new Button("[VIEW] Ver Todos");
-         verTodosButton.setStyle("-fx-font-size: 12px; -fx-padding: 8px 15px; -fx-background-color: #2196F3; -fx-text-fill: white;");
+        Button verTodosButton = new Button("[VIEW] Ver Todos");
+        verTodosButton.setStyle(
+                "-fx-font-size: 12px; -fx-padding: 8px 15px; -fx-background-color: #2196F3; -fx-text-fill: white;");
 
-         Button crearButton = new Button("[NEW] Crear Formulario");
-         crearButton.setStyle("-fx-font-size: 12px; -fx-padding: 8px 15px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
+        Button crearButton = new Button("[NEW] Crear Formulario");
+        crearButton.setStyle(
+                "-fx-font-size: 12px; -fx-padding: 8px 15px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
 
-         usuarioBox.getChildren().addAll(usuarioLabel, usuarioIdField, refrescarButton, verTodosButton, crearButton);
+        usuarioBox.getChildren().addAll(usuarioLabel, usuarioIdField, refrescarButton, verTodosButton, crearButton);
 
         tableView = createTable();
         ScrollPane scrollPane = new ScrollPane(tableView);
@@ -73,12 +74,11 @@ public class FormularioView {
                 usuarioBox,
                 new Separator(),
                 scrollPane,
-                statusLabel
-        );
+                statusLabel);
 
-         refrescarButton.setOnAction(e -> refrescarFormularios());
-         verTodosButton.setOnAction(e -> listarTodosFormularios());
-         crearButton.setOnAction(e -> abrirDialogoCrearFormulario());
+        refrescarButton.setOnAction(e -> refrescarFormularios());
+        verTodosButton.setOnAction(e -> listarTodosFormularios());
+        crearButton.setOnAction(e -> abrirDialogoCrearFormulario());
 
         return new Scene(mainVBox, 900, 700);
     }
@@ -115,8 +115,10 @@ public class FormularioView {
             private final HBox box = new HBox(6, editBtn, deleteBtn);
 
             {
-                editBtn.setStyle("-fx-font-size:10px; -fx-padding:4px 8px; -fx-background-color:#2196F3; -fx-text-fill:white;");
-                deleteBtn.setStyle("-fx-font-size:10px; -fx-padding:4px 8px; -fx-background-color:#f44336; -fx-text-fill:white;");
+                editBtn.setStyle(
+                        "-fx-font-size:10px; -fx-padding:4px 8px; -fx-background-color:#2196F3; -fx-text-fill:white;");
+                deleteBtn.setStyle(
+                        "-fx-font-size:10px; -fx-padding:4px 8px; -fx-background-color:#f44336; -fx-text-fill:white;");
             }
 
             @Override
@@ -166,8 +168,7 @@ public class FormularioView {
                                 fm.getCreatedAt(),
                                 fm.getLatitude(),
                                 fm.getLongitude(),
-                                fm.getPhotoBase64()
-                        ));
+                                fm.getPhotoBase64()));
                     }
 
                     actualizarStatus("[OK] Se cargaron " + formularios.size() + " formularios");
@@ -181,42 +182,42 @@ public class FormularioView {
         }).start();
     }
 
-     private void listarTodosFormularios() {
-         new Thread(() -> {
-             try {
-                 System.out.println("[VIEW] Buscando TODOS los formularios...");
-                 actualizarStatus("Cargando todos los formularios...");
+    private void listarTodosFormularios() {
+        new Thread(() -> {
+            try {
+                System.out.println("[VIEW] Buscando TODOS los formularios...");
+                actualizarStatus("Cargando todos los formularios...");
 
-                 List<FormularioMessage> formularios = grpcClient.listarTodos();
-                 System.out.println("[OK] Respuesta recibida: " + formularios.size() + " formularios");
+                List<FormularioMessage> formularios = grpcClient.listarTodos();
+                System.out.println("[OK] Respuesta recibida: " + formularios.size() + " formularios");
 
-                 Platform.runLater(() -> {
-                     tableView.getItems().clear();
-                     for (FormularioMessage fm : formularios) {
-                         System.out.println("  - " + fm.getName() + " (userId: " + fm.getUserId() + ", usuario: " + fm.getUsername() + ")");
-                         tableView.getItems().add(new FormularioRow(
-                                 fm.getId(),
-                                 fm.getName(),
-                                 fm.getSector(),
-                                 fm.getEducationalLevel(),
-                                 fm.getPhotoBase64().isEmpty() ? "No" : "Si",
-                                 fm.getCreatedAt(),
-                                 fm.getLatitude(),
-                                 fm.getLongitude(),
-                                 fm.getPhotoBase64()
-                         ));
-                     }
+                Platform.runLater(() -> {
+                    tableView.getItems().clear();
+                    for (FormularioMessage fm : formularios) {
+                        System.out.println("  - " + fm.getName() + " (userId: " + fm.getUserId() + ", usuario: "
+                                + fm.getUsername() + ")");
+                        tableView.getItems().add(new FormularioRow(
+                                fm.getId(),
+                                fm.getName(),
+                                fm.getSector(),
+                                fm.getEducationalLevel(),
+                                fm.getPhotoBase64().isEmpty() ? "No" : "Si",
+                                fm.getCreatedAt(),
+                                fm.getLatitude(),
+                                fm.getLongitude(),
+                                fm.getPhotoBase64()));
+                    }
 
-                     actualizarStatus("[OK] Se cargaron " + formularios.size() + " formularios de TODOS los usuarios");
-                 });
+                    actualizarStatus("[OK] Se cargaron " + formularios.size() + " formularios de TODOS los usuarios");
+                });
 
-             } catch (Exception ex) {
-                 System.out.println("[ERROR] Error: " + ex.getMessage());
-                 actualizarStatus("[ERROR] Error: " + ex.getMessage());
-                 logger.error("Error al listar todos los formularios", ex);
-             }
-         }).start();
-     }
+            } catch (Exception ex) {
+                System.out.println("[ERROR] Error: " + ex.getMessage());
+                actualizarStatus("[ERROR] Error: " + ex.getMessage());
+                logger.error("Error al listar todos los formularios", ex);
+            }
+        }).start();
+    }
 
     private void abrirDialogoCrearFormulario() {
         Stage dialogStage = new Stage();
@@ -239,12 +240,11 @@ public class FormularioView {
         Label nivelLabel = new Label("Nivel Educativo:");
         ComboBox<String> nivelCombo = new ComboBox<>();
         nivelCombo.getItems().addAll(
-                "PRIMARIA",
-                "SECUNDARIA",
-                "UNIVERSIDAD",
+                "BASICO",
+                "MEDIO",
+                "GRADO_UNIVERSITARIO",
                 "POSTGRADO",
-                "DOCTORADO"
-        );
+                "DOCTORADO");
         nivelCombo.setPrefWidth(350);
 
         HBox coordBox = new HBox(10);
@@ -264,14 +264,13 @@ public class FormularioView {
         imagePreview.setFitWidth(100);
         imagePreview.setFitHeight(100);
 
-        final String[] fotoBase64 = {""};
+        final String[] fotoBase64 = { "" };
 
         seleccionarImagenButton.setOnAction(e -> {
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("Seleccionar Imagen");
             fileChooser.getExtensionFilters().add(
-                    new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg", "*.gif")
-            );
+                    new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg", "*.gif"));
 
             File file = fileChooser.showOpenDialog(dialogStage);
             if (file != null) {
@@ -291,7 +290,8 @@ public class FormularioView {
         });
 
         Button guardarButton = new Button("Guardar");
-        guardarButton.setStyle("-fx-padding: 10px 20px; -fx-font-size: 12px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
+        guardarButton.setStyle(
+                "-fx-padding: 10px 20px; -fx-font-size: 12px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
 
         Button cancelarButton = new Button("Cancelar");
         cancelarButton.setStyle("-fx-padding: 10px 20px; -fx-font-size: 12px;");
@@ -305,8 +305,7 @@ public class FormularioView {
                 nivelLabel, nivelCombo,
                 coordBox,
                 imagenLabel, seleccionarImagenButton, imagePreview,
-                botonesBox
-        );
+                botonesBox);
 
         ScrollPane scrollPane = new ScrollPane(vBox);
         scrollPane.setFitToWidth(true);
@@ -340,8 +339,7 @@ public class FormularioView {
                             lon,
                             fotoBase64[0],
                             usuarioId,
-                            usuarioId
-                    );
+                            usuarioId);
 
                     if (response.getSuccess()) {
                         actualizarStatus("Formulario creado: " + response.getId());
@@ -369,137 +367,155 @@ public class FormularioView {
         dialogStage.show();
     }
 
-     private void actualizarStatus(String mensaje) {
-         Platform.runLater(() -> statusLabel.setText(mensaje));
-     }
+    private void actualizarStatus(String mensaje) {
+        Platform.runLater(() -> statusLabel.setText(mensaje));
+    }
 
-     private void abrirDialogoEditarFormulario(FormularioRow row) {
-         Stage dialogStage = new Stage();
-         dialogStage.setTitle("Editar Formulario");
+    private void abrirDialogoEditarFormulario(FormularioRow row) {
+        Stage dialogStage = new Stage();
+        dialogStage.setTitle("Editar Formulario");
 
-         VBox vBox = new VBox(10);
-         vBox.setPadding(new Insets(20));
-         vBox.setStyle("-fx-background-color: #f9f9f9;");
+        VBox vBox = new VBox(10);
+        vBox.setPadding(new Insets(20));
+        vBox.setStyle("-fx-background-color: #f9f9f9;");
 
-         TextField nombreField = new TextField(row.getNombre());
-         nombreField.setPromptText("Nombre");
+        TextField nombreField = new TextField(row.getNombre() != null ? row.getNombre() : "");
+        nombreField.setPromptText("Nombre");
 
-         TextField sectorField = new TextField(row.getSector());
-         sectorField.setPromptText("Sector");
+        TextField sectorField = new TextField(row.getSector() != null ? row.getSector() : "");
+        sectorField.setPromptText("Sector");
 
-         ComboBox<String> nivelCombo = new ComboBox<>();
-         nivelCombo.getItems().addAll("PRIMARIA", "SECUNDARIA", "UNIVERSIDAD", "POSTGRADO", "DOCTORADO");
-         nivelCombo.setValue(row.getNivelEducativo());
+        ComboBox<String> nivelCombo = new ComboBox<>();
+        nivelCombo.getItems().addAll("BASICO", "MEDIO", "GRADO_UNIVERSITARIO", "POSTGRADO", "DOCTORADO");
 
-         TextField latField = new TextField(String.valueOf(row.getLatitud() != null ? row.getLatitud() : 0));
-         TextField lonField = new TextField(String.valueOf(row.getLongitud() != null ? row.getLongitud() : 0));
+        // Normalise legacy / English enum names to the Spanish names used in the
+        // ComboBox
+        String nivel = normalizarNivel(row.getNivelEducativo());
+        nivelCombo.setValue(nivel != null ? nivel : "PRIMARIA");
 
-         String[] photoBase64 = {row.getPhotoBase64()};
-         Label photoLabel = new Label(row.getTieneFoto().equals("Si") ? "Foto: Si" : "Sin foto");
-         Button selectPhotoBtn = new Button("Cambiar Foto");
-         selectPhotoBtn.setOnAction(e -> seleccionarFotoDialog(photoLabel, photoBase64));
+        // Guard against null coordinates
+        double latVal = row.getLatitud() != null ? row.getLatitud() : 0.0;
+        double lonVal = row.getLongitud() != null ? row.getLongitud() : 0.0;
+        TextField latField = new TextField(String.valueOf(latVal));
+        TextField lonField = new TextField(String.valueOf(lonVal));
 
-         vBox.getChildren().addAll(
-                 new Label("Nombre:"), nombreField,
-                 new Label("Sector:"), sectorField,
-                 new Label("Nivel Educativo:"), nivelCombo,
-                 new Label("Latitud:"), latField,
-                 new Label("Longitud:"), lonField,
-                 selectPhotoBtn, photoLabel
-         );
+        String[] photoBase64 = { row.getPhotoBase64() != null ? row.getPhotoBase64() : "" };
+        Label photoLabel = new Label(row.getTieneFoto().equals("Si") ? "Foto: Si" : "Sin foto");
+        Button selectPhotoBtn = new Button("Cambiar Foto");
+        selectPhotoBtn.setOnAction(e -> seleccionarFotoDialog(photoLabel, photoBase64));
 
-         Button guardarButton = new Button("Guardar");
-         Button cancelarButton = new Button("Cancelar");
-         HBox buttonBox = new HBox(10, guardarButton, cancelarButton);
-         buttonBox.setStyle("-fx-alignment: center;");
-         vBox.getChildren().add(buttonBox);
+        vBox.getChildren().addAll(
+                new Label("Nombre:"), nombreField,
+                new Label("Sector:"), sectorField,
+                new Label("Nivel Educativo:"), nivelCombo,
+                new Label("Latitud:"), latField,
+                new Label("Longitud:"), lonField,
+                selectPhotoBtn, photoLabel);
 
-         guardarButton.setOnAction(e -> {
-             new Thread(() -> {
-                 try {
-                     String nombre = nombreField.getText().trim();
-                     String sector = sectorField.getText().trim();
-                     String nivel = nivelCombo.getValue();
-                     double lat = Double.parseDouble(latField.getText());
-                     double lon = Double.parseDouble(lonField.getText());
+        Button guardarButton = new Button("Guardar");
+        Button cancelarButton = new Button("Cancelar");
+        HBox buttonBox = new HBox(10, guardarButton, cancelarButton);
+        buttonBox.setStyle("-fx-alignment: center;");
+        vBox.getChildren().add(buttonBox);
 
-                     if (nombre.isEmpty() || sector.isEmpty() || nivel == null) {
-                         actualizarStatus("[ERROR] Completa todos los campos");
-                         return;
-                     }
+        guardarButton.setOnAction(e -> {
+            new Thread(() -> {
+                try {
+                    String nombre = nombreField.getText().trim();
+                    String sector = sectorField.getText().trim();
+                    String nivelVal = nivelCombo.getValue();
+                    double lat = Double.parseDouble(latField.getText().trim());
+                    double lon = Double.parseDouble(lonField.getText().trim());
 
-                     actualizarStatus("Actualizando formulario...");
-                     var response = grpcClient.actualizarFormulario(row.getId(), nombre, sector, nivel, lat, lon, photoBase64[0]);
+                    if (nombre.isEmpty() || sector.isEmpty() || nivelVal == null) {
+                        actualizarStatus("[ERROR] Completa todos los campos");
+                        return;
+                    }
 
-                     if (response.getSuccess()) {
-                         actualizarStatus("[OK] Formulario actualizado exitosamente");
-                         refrescarFormularios();
-                         dialogStage.close();
-                     } else {
-                         actualizarStatus("[ERROR] " + response.getMessage());
-                     }
-                 } catch (Exception ex) {
-                     actualizarStatus("[ERROR] " + ex.getMessage());
-                     logger.error("Error al actualizar", ex);
-                 }
-             }).start();
-         });
+                    actualizarStatus("Actualizando formulario...");
+                    var response = grpcClient.actualizarFormulario(row.getId(), nombre, sector, nivelVal, lat, lon,
+                            photoBase64[0]);
 
-         cancelarButton.setOnAction(e -> dialogStage.close());
+                    if (response.getSuccess()) {
+                        actualizarStatus("[OK] Formulario actualizado exitosamente");
+                        refrescarFormularios();
+                        Platform.runLater(dialogStage::close);
+                    } else {
+                        actualizarStatus("[ERROR] " + response.getMessage());
+                    }
+                } catch (NumberFormatException ex) {
+                    actualizarStatus("[ERROR] Latitud/Longitud deben ser números");
+                } catch (Exception ex) {
+                    actualizarStatus("[ERROR] " + ex.getMessage());
+                    logger.error("Error al actualizar", ex);
+                }
+            }).start();
+        });
 
-         dialogStage.setWidth(480);
-         dialogStage.setHeight(600);
-         dialogStage.show();
-     }
+        cancelarButton.setOnAction(e -> dialogStage.close());
 
-     private void confirmarEliminarFormulario(FormularioRow row) {
-         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-         alert.setTitle("Confirmar Eliminacion");
-         alert.setHeaderText("Eliminar Formulario");
-         alert.setContentText("Deseas eliminar el formulario: " + row.getNombre() + "?");
+        ScrollPane scrollPane = new ScrollPane(vBox);
+        scrollPane.setFitToWidth(true);
+        dialogStage.setScene(new Scene(scrollPane, 480, 600));
+        dialogStage.show();
+    }
 
-         java.util.Optional<ButtonType> result = alert.showAndWait();
-         if (result.isPresent() && result.get() == ButtonType.OK) {
-             new Thread(() -> {
-                 try {
-                     actualizarStatus("Eliminando formulario...");
-                     var response = grpcClient.eliminarFormulario(row.getId());
+    private String normalizarNivel(String raw) {
+        if (raw == null)
+            return null;
+        return switch (raw.trim().toUpperCase()) {
+            case "BASICO", "MEDIO", "GRADO_UNIVERSITARIO" -> raw.trim().toUpperCase();
+            default -> raw.trim().toUpperCase();
+        };
+    }
 
-                     if (response.getSuccess()) {
-                         actualizarStatus("[OK] Formulario eliminado exitosamente");
-                         refrescarFormularios();
-                     } else {
-                         actualizarStatus("[ERROR] " + response.getMessage());
-                     }
-                 } catch (Exception ex) {
-                     actualizarStatus("[ERROR] " + ex.getMessage());
-                     logger.error("Error al eliminar", ex);
-                 }
-             }).start();
-         }
-     }
+    private void confirmarEliminarFormulario(FormularioRow row) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Confirmar Eliminacion");
+        alert.setHeaderText("Eliminar Formulario");
+        alert.setContentText("Deseas eliminar el formulario: " + row.getNombre() + "?");
 
-     private void seleccionarFotoDialog(Label photoLabel, String[] photoBase64) {
-         FileChooser fileChooser = new FileChooser();
-         fileChooser.setTitle("Seleccionar Foto");
-         fileChooser.getExtensionFilters().addAll(
-                 new FileChooser.ExtensionFilter("Imagenes", "*.jpg", "*.jpeg", "*.png"),
-                 new FileChooser.ExtensionFilter("Todos", "*.*")
-         );
+        java.util.Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            new Thread(() -> {
+                try {
+                    actualizarStatus("Eliminando formulario...");
+                    var response = grpcClient.eliminarFormulario(row.getId());
 
-         File file = fileChooser.showOpenDialog(null);
-         if (file != null) {
-             try {
-                 byte[] fileContent = Files.readAllBytes(file.toPath());
-                 photoBase64[0] = Base64.getEncoder().encodeToString(fileContent);
-                 photoLabel.setText("Foto: " + file.getName());
-             } catch (Exception ex) {
-                 actualizarStatus("[ERROR] No se pudo cargar la foto");
-             }
-         }
-     }
+                    if (response.getSuccess()) {
+                        actualizarStatus("[OK] Formulario eliminado exitosamente");
+                        refrescarFormularios();
+                    } else {
+                        actualizarStatus("[ERROR] " + response.getMessage());
+                    }
+                } catch (Exception ex) {
+                    actualizarStatus("[ERROR] " + ex.getMessage());
+                    logger.error("Error al eliminar", ex);
+                }
+            }).start();
+        }
+    }
 
-     // ...existing code...
+    private void seleccionarFotoDialog(Label photoLabel, String[] photoBase64) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Seleccionar Foto");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Imagenes", "*.jpg", "*.jpeg", "*.png"),
+                new FileChooser.ExtensionFilter("Todos", "*.*"));
+
+        File file = fileChooser.showOpenDialog(null);
+        if (file != null) {
+            try {
+                byte[] fileContent = Files.readAllBytes(file.toPath());
+                photoBase64[0] = Base64.getEncoder().encodeToString(fileContent);
+                photoLabel.setText("Foto: " + file.getName());
+            } catch (Exception ex) {
+                actualizarStatus("[ERROR] No se pudo cargar la foto");
+            }
+        }
+    }
+
+    // ...existing code...
 
     public static class FormularioRow {
         private final String id;
@@ -512,7 +528,8 @@ public class FormularioView {
         private final Double longitud;
         private final String photoBase64;
 
-        public FormularioRow(String id, String nombre, String sector, String nivelEducativo, String tieneFoto, String fechaCreacion, Double latitud, Double longitud, String photoBase64) {
+        public FormularioRow(String id, String nombre, String sector, String nivelEducativo, String tieneFoto,
+                String fechaCreacion, Double latitud, Double longitud, String photoBase64) {
             this.id = id;
             this.nombre = nombre;
             this.sector = sector;
@@ -524,15 +541,40 @@ public class FormularioView {
             this.photoBase64 = photoBase64;
         }
 
-        public String getId() { return id; }
-        public String getNombre() { return nombre; }
-        public String getSector() { return sector; }
-        public String getNivelEducativo() { return nivelEducativo; }
-        public String getTieneFoto() { return tieneFoto; }
-        public String getFechaCreacion() { return fechaCreacion; }
-        public Double getLatitud() { return latitud; }
-        public Double getLongitud() { return longitud; }
-        public String getPhotoBase64() { return photoBase64; }
+        public String getId() {
+            return id;
+        }
+
+        public String getNombre() {
+            return nombre;
+        }
+
+        public String getSector() {
+            return sector;
+        }
+
+        public String getNivelEducativo() {
+            return nivelEducativo;
+        }
+
+        public String getTieneFoto() {
+            return tieneFoto;
+        }
+
+        public String getFechaCreacion() {
+            return fechaCreacion;
+        }
+
+        public Double getLatitud() {
+            return latitud;
+        }
+
+        public Double getLongitud() {
+            return longitud;
+        }
+
+        public String getPhotoBase64() {
+            return photoBase64;
+        }
     }
 }
-

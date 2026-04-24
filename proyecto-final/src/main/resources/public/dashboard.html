@@ -1,246 +1,436 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FieldForm — Dashboard</title>
   <link rel="stylesheet" href="/css/style.css">
   <style>
-    body { display: flex; flex-direction: column; }
+    body {
+      display: flex;
+      flex-direction: column;
+    }
 
-    .dash-content { display: flex; flex-direction: column; }
+    .dash-content {
+      display: flex;
+      flex-direction: column;
+    }
 
     .dash-header {
-      display: flex; justify-content: space-between; align-items: flex-end;
-      margin-bottom: 24px; gap: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 24px;
+      gap: 12px;
     }
-    .dash-title { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 500; line-height: 1.1; }
-    .dash-subtitle { font-size: 13px; color: var(--ink-ghost); margin-top: 4px; }
 
-    /* Stats */
-    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
+    .dash-title {
+      font-family: 'Fraunces', serif;
+      font-size: 26px;
+      font-weight: 500;
+      line-height: 1.1;
+    }
+
+    .dash-subtitle {
+      font-size: 13px;
+      color: var(--ink-ghost);
+      margin-top: 4px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
     .stat-card {
-      background: var(--white); border: 1px solid var(--border);
-      border-radius: var(--radius-lg); padding: 16px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
     }
-    .stat-label { font-size: 11px; font-weight: 600; color: var(--ink-ghost); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
-    .stat-value { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 700; line-height: 1; }
-    .stat-value.clay  { color: var(--clay); }
-    .stat-value.green { color: var(--green); }
-    .stat-value.amber { color: var(--amber); }
 
-    /* Survey list */
+    .stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink-ghost);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-family: 'Fraunces', serif;
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-value.clay {
+      color: var(--clay);
+    }
+
+    .stat-value.green {
+      color: var(--green);
+    }
+
+    .stat-value.amber {
+      color: var(--amber);
+    }
+
     .section-label {
-      font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--ink-ghost); margin-bottom: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-ghost);
+      margin-bottom: 10px;
     }
-    .survey-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .survey-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
     .survey-item {
-      background: var(--white); border: 1px solid var(--border);
-      border-radius: var(--radius-lg); padding: 16px 18px;
-      display: flex; align-items: center; gap: 14px;
-      transition: all var(--transition); cursor: default;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: all var(--transition);
+      cursor: default;
     }
-    .survey-item:hover { border-color: rgba(196,98,45,0.3); box-shadow: var(--shadow-sm); }
+
+    .survey-item:hover {
+      border-color: rgba(196, 98, 45, 0.3);
+      box-shadow: var(--shadow-sm);
+    }
 
     .survey-avatar {
-      width: 40px; height: 40px; border-radius: var(--radius-md);
-      background: var(--clay-pale); display: flex; align-items: center; justify-content: center;
-      font-family: 'Fraunces', serif; font-size: 15px; font-weight: 700; color: var(--clay);
-      flex-shrink: 0; text-transform: uppercase;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: var(--clay-pale);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fraunces', serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--clay);
+      flex-shrink: 0;
+      text-transform: uppercase;
     }
-    .survey-avatar.pending { background: var(--amber-pale); color: var(--amber); }
-    .survey-avatar.local   { background: var(--parch-2);    color: var(--ink-soft); }
 
-    .survey-body  { flex: 1; min-width: 0; }
-    .survey-name  { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .survey-meta  { font-size: 12px; color: var(--ink-ghost); margin-top: 3px; }
-    .survey-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-    .survey-date  { font-size: 11px; color: var(--ink-ghost); }
-    .survey-actions { display: flex; gap: 6px; margin-top: 2px; }
+    .survey-avatar.pending {
+      background: var(--amber-pale);
+      color: var(--amber);
+    }
+
+    .survey-avatar.local {
+      background: var(--parch-2);
+      color: var(--ink-soft);
+    }
+
+    .survey-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .survey-name {
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .survey-meta {
+      font-size: 12px;
+      color: var(--ink-ghost);
+      margin-top: 3px;
+    }
+
+    .survey-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+    }
+
+    .survey-date {
+      font-size: 11px;
+      color: var(--ink-ghost);
+    }
+
+    .survey-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
     .icon-btn {
-      border: 1px solid var(--border); background: var(--white); color: var(--ink-soft);
-      border-radius: 8px; padding: 4px 8px; font-size: 12px; cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--white);
+      color: var(--ink-soft);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
       transition: all var(--transition);
     }
-    .icon-btn:hover { border-color: var(--clay); color: var(--clay); }
-    .icon-btn.danger:hover { border-color: #c73636; color: #c73636; }
+
+    .icon-btn:hover {
+      border-color: var(--clay);
+      color: var(--clay);
+    }
+
+    .icon-btn.danger:hover {
+      border-color: #c73636;
+      color: #c73636;
+    }
 
     .empty-state {
-      text-align: center; padding: 60px 20px;
-      border: 1.5px dashed var(--border); border-radius: var(--radius-xl);
+      text-align: center;
+      padding: 60px 20px;
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius-xl);
     }
-    .empty-icon  { font-size: 38px; margin-bottom: 12px; opacity: 0.4; }
-    .empty-title { font-family: 'Fraunces', serif; font-size: 20px; color: var(--ink-soft); margin-bottom: 6px; }
-    .empty-text  { font-size: 13px; color: var(--ink-ghost); }
+
+    .empty-icon {
+      font-size: 38px;
+      margin-bottom: 12px;
+      opacity: 0.4;
+    }
+
+    .empty-title {
+      font-family: 'Fraunces', serif;
+      font-size: 20px;
+      color: var(--ink-soft);
+      margin-bottom: 6px;
+    }
+
+    .empty-text {
+      font-size: 13px;
+      color: var(--ink-ghost);
+    }
 
     @media (max-width: 480px) {
-      .dash-header { flex-direction: column; align-items: flex-start; }
-      .btn-clay    { align-self: stretch; justify-content: center; }
-      .stats-row   { gap: 8px; }
-      .stat-value  { font-size: 22px; }
+      .dash-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .btn-clay {
+        align-self: stretch;
+        justify-content: center;
+      }
+
+      .stats-row {
+        gap: 8px;
+      }
+
+      .stat-value {
+        font-size: 22px;
+      }
     }
   </style>
 </head>
+
 <body>
 
-<!-- Top bar -->
-<div class="top-bar">
-  <div class="top-bar-brand" onclick="window.location.href='/dashboard.html'">
-    <div class="top-bar-brand-icon">
-      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="top-bar-brand" onclick="window.location.href='/dashboard.html'">
+      <div class="top-bar-brand-icon">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+        </svg>
+      </div>
+      <span class="top-bar-brand-name">FieldForm</span>
     </div>
-    <span class="top-bar-brand-name">FieldForm</span>
-  </div>
-  <div class="top-bar-right">
-    <div class="sync-pill" id="sync-pill"><div class="sync-dot"></div><span id="sync-text">Online</span></div>
-    <div class="avatar-btn" id="avatar-btn">–</div>
-    <div class="user-menu" id="user-menu">
-      <div class="user-menu-header">
-        <div class="user-menu-name" id="menu-name">–</div>
-        <div class="user-menu-role" id="menu-role">–</div>
+    <div class="top-bar-right">
+      <div class="sync-pill" id="sync-pill">
+        <div class="sync-dot"></div><span id="sync-text">Online</span>
       </div>
-      <div class="user-menu-item" onclick="window.location.href='/map.html'">
-        <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
-        Ver Mapa
+      <div class="avatar-btn" id="avatar-btn">–</div>
+      <div class="user-menu" id="user-menu">
+        <div class="user-menu-header">
+          <div class="user-menu-name" id="menu-name">–</div>
+          <div class="user-menu-role" id="menu-role">–</div>
+        </div>
+        <div class="user-menu-item" onclick="window.location.href='/map.html'">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z" />
+          </svg>
+          Ver Mapa
+        </div>
+        <div class="user-menu-item" onclick="window.location.href='/form.html'">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+          </svg>
+          New Survey
+        </div>
+        <div class="user-menu-item danger" onclick="logout()">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+          </svg>
+          Sign Out
+        </div>
       </div>
-      <div class="user-menu-item" onclick="window.location.href='/form.html'">
-        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-        New Survey
-      </div>
-      <div class="user-menu-item danger" onclick="logout()">
-        <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
-        Sign Out
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="page-content dash-content">
-  <div class="dash-header">
-    <div>
-      <div class="dash-title">My Surveys</div>
-      <div class="dash-subtitle" id="dash-greeting">Loading…</div>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn-outline" onclick="window.location.href='/map.html'">
-        <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;flex-shrink:0"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
-        Ver Mapa
-      </button>
-       <button class="btn-clay" onclick="window.location.href='/form.html'">
-         <svg viewBox="0 0 24 24"><path d="M19 13H13v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-         New Survey
-       </button>
-       <button class="btn-outline" onclick="refreshFromServer()">
-         <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor"><path d="M1 4v6h6M23 20v-6h-6M20.54 9.46a9 9 0 1 0 .02 11.07 9 9 0 0 0-.02-11.07"/></svg>
-         Refresh
-       </button>
     </div>
   </div>
 
-  <div class="stats-row">
-    <div class="stat-card"><div class="stat-label">Total</div>  <div class="stat-value clay"  id="stat-total">0</div></div>
-    <div class="stat-card"><div class="stat-label">Synced</div> <div class="stat-value green" id="stat-synced">0</div></div>
-    <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value amber" id="stat-pending">0</div></div>
+  <div class="page-content dash-content">
+    <div class="dash-header">
+      <div>
+        <div class="dash-title">Mis Encuestas</div>
+        <div class="dash-subtitle" id="dash-greeting">Loading…</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-outline" onclick="window.location.href='/map.html'">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;flex-shrink:0">
+            <path
+              d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z" />
+          </svg>
+          Ver Mapa
+        </button>
+        <button class="btn-clay" onclick="window.location.href='/form.html'">
+          <svg viewBox="0 0 24 24">
+            <path d="M19 13H13v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+          </svg>
+          Nueva Encuesta
+        </button>
+        <button class="btn-outline" onclick="refreshFromServer()">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor">
+            <path d="M1 4v6h6M23 20v-6h-6M20.54 9.46a9 9 0 1 0 .02 11.07 9 9 0 0 0-.02-11.07" />
+          </svg>
+          Refrescar
+        </button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total</div>
+        <div class="stat-value clay" id="stat-total">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sincronizadas</div>
+        <div class="stat-value green" id="stat-synced">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pendientes</div>
+        <div class="stat-value amber" id="stat-pending">0</div>
+      </div>
+    </div>
+
+    <div class="offline-banner" id="offline-banner">
+      <svg viewBox="0 0 24 24" stroke-linecap="round">
+        <path
+          d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
+      </svg>
+      <span id="banner-msg"></span>
+      <button class="btn-sync" onclick="syncNow()">Sincronizar</button>
+    </div>
+
+    <div class="section-label">Encuestas Recientes</div>
+    <div class="survey-list" id="survey-list"></div>
   </div>
 
-  <div class="offline-banner" id="offline-banner">
-    <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
-    <span id="banner-msg"></span>
-    <button class="btn-sync" onclick="syncNow()">Sync now</button>
-  </div>
+  <div id="toast"></div>
 
-  <div class="section-label">Recent Records</div>
-  <div class="survey-list" id="survey-list"></div>
-</div>
+  <script src="/js/storage.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    const user = requireAuth();
+    initUserMenu();
+    initSyncPill();
 
-<div id="toast"></div>
+    document.getElementById('dash-greeting').textContent = greeting(user.username);
 
-<script src="/js/storage.js"></script>
-<script src="/js/api.js"></script>
-<script src="/js/app.js"></script>
-<script>
-  const user = requireAuth();
-  initUserMenu();
-  initSyncPill();
+    const EDU = {
+      BASICO: 'Básico',
+      MEDIO: 'Medio',
+      GRADO_UNIVERSITARIO: 'Grado Universitario',
+      POSTGRADO: 'Postgrado',
+      DOCTORADO: 'Doctorado'
+    };
 
-  document.getElementById('dash-greeting').textContent = greeting(user.username);
+    window.loadDashboard = render; // Para que el worker pueda llamarlo
 
-  const EDU = {
-    PRIMARIA:'Primaria',
-    SECUNDARIA:'Secundaria',
-    SECONDARIA:'Secundaria',
-    UNIVERSIDAD:'Universidad',
-    POSTGRADO:'Postgrado',
-    DOCTORADO:'Doctorado',
-    PRIMARY:'Primaria',
-    SECONDARY:'Secundaria',
-    UNIVERSITY_DEGREE:'Universidad',
-    POSTGRADUATE:'Postgrado',
-    DOCTORAL:'Doctorado'
-  };
+    async function render() {
+      const allSurveys = await SurveyStorage.loadSurveys();
+      const surveys = allSurveys;
 
-  function render() {
-    const allSurveys = SurveyStorage.loadSurveys();
-    const surveys = allSurveys;
+      const synced = surveys.filter(s => s.status === 'synced').length;
+      const pending = surveys.filter(s => s.status !== 'synced').length;
 
-    const synced  = surveys.filter(s => s.status === 'synced').length;
-    const pending = surveys.filter(s => s.status !== 'synced').length;
+      document.getElementById('stat-total').textContent = surveys.length;
+      document.getElementById('stat-synced').textContent = synced;
+      document.getElementById('stat-pending').textContent = pending;
 
-    document.getElementById('stat-total').textContent   = surveys.length;
-    document.getElementById('stat-synced').textContent  = synced;
-    document.getElementById('stat-pending').textContent = pending;
+      const pendingQ = surveys.filter(s => s.status === 'pending').length;
+      const banner = document.getElementById('offline-banner');
+      const online = navigator.onLine;
 
-    const pendingQ = surveys.filter(s => s.status === 'pending').length;
-    const banner   = document.getElementById('offline-banner');
-    const online   = navigator.onLine;
+      banner.classList.toggle('visible', pendingQ > 0);
 
-    banner.classList.toggle('visible', pendingQ > 0);
-
-    if (pendingQ > 0) {
-      const msg = document.getElementById('banner-msg');
-      if (online) {
-        msg.innerHTML = `<strong>${pendingQ}</strong> form(s) pending — click to sync now`;
-      } else {
-        msg.innerHTML = `<strong>${pendingQ}</strong> form(s) queued offline — will sync when reconnected`;
+      if (pendingQ > 0) {
+        const msg = document.getElementById('banner-msg');
+        if (online) {
+          msg.innerHTML = `<strong>${pendingQ}</strong> formulario(s) pendiente(s) presiona sincronizar`;
+        } else {
+          msg.innerHTML = `<strong>${pendingQ}</strong> formularios pendientes se sincronizaran cuando estes en linea`;
+        }
       }
-    }
 
-    const list = document.getElementById('survey-list');
-    if (!surveys.length) {
-      list.innerHTML = `<div class="empty-state">
+      const list = document.getElementById('survey-list');
+      if (!surveys.length) {
+        list.innerHTML = `<div class="empty-state">
         <div class="empty-icon">—</div>
-        <div class="empty-title">No surveys yet</div>
-        <div class="empty-text">Tap "New Survey" to start your first field record</div>
+        <div class="empty-title">Ninguna encuesta</div>
+        <div class="empty-text">presiona "Nueva encuesta" para crear tu primera encuesta de campo</div>
       </div>`;
-      return;
-    }
+        return;
+      }
 
-    list.innerHTML = surveys.map(s => {
-      const initials   = (s.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-      const dateStr    = new Date(s.createdAt).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
-      const badgeClass = s.status === 'synced' ? 'synced' : s.status === 'pending' ? 'pending' : 'local';
-      const badgeText  = s.status === 'synced' ? 'Synced' : s.status === 'pending' ? 'Pending sync' : 'Draft';
-      const avatarCls  = 'survey-avatar ' + (s.status !== 'synced' ? s.status : '');
-      const safeName = (s.name || '').replace(/'/g, "&#39;");
-      let actions = '';
+      list.innerHTML = surveys.map(s => {
+        const initials = (s.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        const dateStr = new Date(s.createdAt).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
+        const badgeClass = s.status === 'synced' ? 'synced' : s.status === 'pending' ? 'pending' : 'local';
+        const badgeText = s.status === 'synced' ? 'Synced' : s.status === 'pending' ? 'Pending sync' : 'Draft';
+        const avatarCls = 'survey-avatar ' + (s.status !== 'synced' ? s.status : '');
+        const safeName = (s.name || '').replace(/'/g, "&#39;");
+        let actions = '';
 
-      if (s.status === 'local' || s.status === 'pending') {
-        const publishLabel = s.status === 'pending' ? 'Retry' : 'Publish';
-        actions = `<div class="survey-actions">
+        if (s.status === 'local' || s.status === 'pending') {
+          const publishLabel = s.status === 'pending' ? 'Retry' : 'Publish';
+          actions = `<div class="survey-actions">
              <button class="icon-btn" onclick="editSurvey('${s.id}')">Edit</button>
              <button class="icon-btn danger" onclick="deleteSurvey('${s.id}', '${safeName}')">Delete</button>
              <button class="icon-btn" onclick="publishSurvey('${s.id}')">${publishLabel}</button>
            </div>`;
-      } else if (s.status === 'synced') {
-        const remoteId = s.serverId || s.id;
-        actions = `<div class="survey-actions">
+        } else if (s.status === 'synced') {
+          const remoteId = s.serverId || s.id;
+          actions = `<div class="survey-actions">
              <button class="icon-btn" onclick="editSurvey('${remoteId}')">Edit</button>
              <button class="icon-btn danger" onclick="deleteSurvey('${remoteId}', '${safeName}')">Delete</button>
            </div>`;
-      }
+        }
 
-      return `<div class="survey-item">
+        return `<div class="survey-item">
         <div class="${avatarCls}">${initials}</div>
         <div class="survey-body">
           <div class="survey-name">${s.name || 'Unnamed'}</div>
@@ -252,167 +442,175 @@
           <span class="survey-date">${dateStr}</span>
         </div>
       </div>`;
-    }).join('');
-  }
-
-  function editSurvey(id) {
-    window.location.href = `/form.html?id=${encodeURIComponent(id)}`;
-  }
-
-  async function deleteSurvey(id, name) {
-    const label = name || 'this survey';
-    if (!confirm(`Delete "${label}"? This action cannot be undone.`)) return;
-
-    const local = SurveyStorage.findSurvey(id);
-    if (local && local.status !== 'synced') {
-      SurveyStorage.removeSurvey(id);
-      toast('Local survey deleted');
-      render();
-      return;
+      }).join('');
     }
 
-    const res = await API.surveys.delete(id);
-    if (!res.ok) {
-      if (res.status === 401) {
-        SurveyStorage.clearUser();
-        window.location.href = '/login.html';
-        return;
-      }
-      toast('Error deleting survey: ' + res.message);
-      return;
+    function editSurvey(id) {
+      window.location.href = `/form.html?id=${encodeURIComponent(id)}`;
     }
 
-    SurveyStorage.removeSurvey(id);
-    toast('Survey deleted');
-    await refreshFromServer(true);
-  }
+    async function deleteSurvey(id, name) {
+      const label = name || 'esta encuesta';
+      if (!confirm(`Estas seguro que deseas eliminar "${label}"? Esta accion no se puede deshacer.`)) return;
 
-  async function publishSurvey(id) {
-    const record = SurveyStorage.findSurvey(id);
-    if (!record) {
-      toast('Survey not found');
-      return;
-    }
-
-    if (!record.name || !record.sector || !record.educationalLevel) {
-      toast('Complete required fields before publishing');
-      editSurvey(id);
-      return;
-    }
-
-    const payload = {
-      name: record.name,
-      sector: record.sector,
-      educationalLevel: record.educationalLevel,
-      latitude: record.latitude ?? null,
-      longitude: record.longitude ?? null,
-      photoBase64: record.photoBase64 || null,
-    };
-
-    if (!navigator.onLine) {
-      SurveyStorage.updateSurvey(id, { status: 'pending' });
-      toast('No connection: survey queued for sync');
-      render();
-      return;
-    }
-
-    const res = await API.surveys.create(payload);
-    if (!res.ok) {
-      if (res.status === 401) {
-        SurveyStorage.clearUser();
-        window.location.href = '/login.html';
+      const local = await SurveyStorage.findSurvey(id);
+      if (local && local.status !== 'synced') {
+        await SurveyStorage.removeSurvey(id);
+        toast('Encuesta eliminada localmente');
+        render();
         return;
       }
 
-      SurveyStorage.updateSurvey(id, { status: 'pending' });
-      toast(`Could not publish now (${res.message}) — queued for sync`);
+      const res = await API.surveys.delete(id);
+      if (!res.ok) {
+        if (res.status === 401) {
+          SurveyStorage.clearUser();
+          window.location.href = '/login.html';
+          return;
+        }
+        toast('Error al eliminar encuesta: ' + res.message);
+        return;
+      }
+
+      await SurveyStorage.removeSurvey(id);
+      toast('Encuesta eliminada');
+      await refreshFromServer(true);
+    }
+
+    async function publishSurvey(id) {
+      const record = await SurveyStorage.findSurvey(id);
+      if (!record) {
+        toast('Encuesta no encontrada');
+        return;
+      }
+
+      if (!record.name || !record.sector || !record.educationalLevel) {
+        toast('Complete los campos requeridos antes de publicar');
+        editSurvey(id);
+        return;
+      }
+
+      const payload = {
+        name: record.name,
+        sector: record.sector,
+        educationalLevel: record.educationalLevel,
+        latitude: record.latitude ?? null,
+        longitude: record.longitude ?? null,
+        photoBase64: record.photoBase64 || null,
+      };
+
+      if (!navigator.onLine) {
+        await SurveyStorage.updateSurvey(id, { status: 'pending' });
+        if (window.syncWorker) window.syncWorker.postMessage({ type: 'SYNC_NOW' });
+        toast('Sin conexion: formulario pendiente de publicacion');
+        render();
+        return;
+      }
+
+      const res = await API.surveys.create(payload);
+      if (!res.ok) {
+        if (res.status === 401) {
+          SurveyStorage.clearUser();
+          window.location.href = '/login.html';
+          return;
+        }
+
+        await SurveyStorage.updateSurvey(id, { status: 'pending' });
+        if (window.syncWorker) window.syncWorker.postMessage({ type: 'SYNC_NOW' });
+        toast(`No se pudo publicar ahora (${res.message}) — pendiente de publicacion`);
+        render();
+        return;
+      }
+
+      await SurveyStorage.updateSurvey(id, {
+        status: 'synced',
+        serverId: res.data?.form?.id || record.serverId || id,
+        updatedAt: new Date().toISOString()
+      });
+      toast('Formulario publicado');
       render();
-      return;
     }
 
-    SurveyStorage.updateSurvey(id, {
-      status: 'synced',
-      serverId: res.data?.form?.id || record.serverId || id,
-      updatedAt: new Date().toISOString()
-    });
-    toast('Survey published');
+    async function syncNow() {
+      if (!navigator.onLine) { toast('Sin conexión — conéctate primero'); return; }
+
+      toast('Sincronizando en segundo plano...');
+      if (window.syncWorker) {
+        window.syncWorker.postMessage({ type: 'SYNC_NOW' });
+      } else {
+        toast('Worker no disponible');
+      }
+    }
+
+    async function refreshFromServer(silent = false) {
+      if (!navigator.onLine) { toast('Sin conexión'); return; }
+
+      if (!silent) toast('Descargando encuestas...');
+      const res = await API.surveys.getAll();
+
+      if (!res.ok) {
+        toast('Error al descargar: ' + res.message);
+        return;
+      }
+
+      const serverSurveys = (res.data.forms || []).map(serverForm => ({
+        id: serverForm.id,
+        name: serverForm.name,
+        sector: serverForm.sector,
+        educationalLevel: serverForm.educationalLevel,
+        latitude: serverForm.latitude,
+        longitude: serverForm.longitude,
+        photoBase64: serverForm.photoBase64,
+        userId: serverForm.userId,
+        username: serverForm.username,
+        createdAt: serverForm.createdAt,
+        updatedAt: serverForm.updatedAt,
+        status: 'synced',
+        serverId: serverForm.id
+      }));
+
+      // Upsert every record that exists on the server
+      for (const item of serverSurveys) {
+        await SurveyStorage.upsertSurvey(item);
+      }
+
+      // ── Remove zombie records ────────────────────────────────────────────────
+      // Any local record with status 'synced' that is NOT in the server response
+      // was deleted externally (via gRPC, REST, etc.). Remove it from IndexedDB.
+      const serverIds = new Set(serverSurveys.map(s => s.id));
+      const allLocal = await SurveyStorage.loadSurveys();
+      for (const local of allLocal) {
+        if (local.status === 'synced') {
+          const localId = local.id;
+          const serverId = local.serverId;
+          // Gone from server if neither its own id nor its serverId is in the response
+          if (!serverIds.has(localId) && !serverIds.has(serverId)) {
+            await SurveyStorage.removeSurvey(localId);
+          }
+        }
+      }
+      // ────────────────────────────────────────────────────────────────────────
+
+      if (!silent) toast(`[OK] ${serverSurveys.length} encuesta(s) descargada(s)`);
+      render();
+    }
+
+
+    window.addEventListener('online', render);
+    window.addEventListener('offline', render);
+
     render();
-  }
 
-  async function syncNow() {
-    if (!navigator.onLine) { toast('Sin conexión — conéctate primero'); return; }
-
-    toast('Sincronizando…');
-    const result = await API.syncQueue();
-
-    if (result.authExpired) {
-      SurveyStorage.clearUser();
-      window.location.href = '/login.html';
-      return;
+    if (navigator.onLine) {
+      refreshFromServer(true);
     }
 
-    if (result.synced > 0 && result.failed === 0) {
-      toast(`[OK] ${result.synced} encuesta(s) sincronizada(s)`);
-    } else if (result.synced > 0 && result.failed > 0) {
-      toast(`[OK] ${result.synced} sincronizada(s), [ERROR] ${result.failed} fallaron`);
-    } else if (result.failed > 0) {
-      const firstError = result.errors[0];
-      toast(`Error al sincronizar: ${firstError ? firstError.reason : 'respuesta inesperada del servidor'}`);
-    } else {
-      toast('No hay nada pendiente de sincronizar');
+    const shouldAutoRefresh = sessionStorage.getItem('fieldform_refresh_dashboard') === '1';
+    if (shouldAutoRefresh) {
+      sessionStorage.removeItem('fieldform_refresh_dashboard');
+      refreshFromServer();
     }
-
-    render();
-  }
-
-  async function refreshFromServer(silent = false) {
-    if (!navigator.onLine) { toast('Sin conexión'); return; }
-
-    if (!silent) toast('Descargando encuestas...');
-    const res = await API.surveys.getAll();
-
-    if (!res.ok) {
-      toast('Error al descargar: ' + res.message);
-      return;
-    }
-
-    const serverSurveys = (res.data.forms || []).map(serverForm => ({
-      id: serverForm.id,
-      name: serverForm.name,
-      sector: serverForm.sector,
-      educationalLevel: serverForm.educationalLevel,
-      latitude: serverForm.latitude,
-      longitude: serverForm.longitude,
-      photoBase64: serverForm.photoBase64,
-      userId: serverForm.userId,
-      username: serverForm.username,
-      createdAt: serverForm.createdAt,
-      updatedAt: serverForm.updatedAt,
-      status: 'synced',
-      serverId: serverForm.id
-    }));
-
-    const localDrafts = SurveyStorage.loadSurveys().filter(s => s.status !== 'synced');
-    SurveyStorage.saveSurveys([...localDrafts, ...serverSurveys]);
-
-    if (!silent) toast(`[OK] ${serverSurveys.length} encuesta(s) descargada(s)`);
-    render();
-  }
-
-  window.addEventListener('online',  render);
-  window.addEventListener('offline', render);
-
-  render();
-
-  if (navigator.onLine) {
-    refreshFromServer(true);
-  }
-
-  const shouldAutoRefresh = sessionStorage.getItem('fieldform_refresh_dashboard') === '1';
-  if (shouldAutoRefresh) {
-    sessionStorage.removeItem('fieldform_refresh_dashboard');
-    refreshFromServer();
-  }
-</script>
+  </script>
 </body>
+
 </html>

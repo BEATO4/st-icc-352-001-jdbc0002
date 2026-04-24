@@ -41,7 +41,7 @@ public class SurveyFormController {
             if (!surveyFormService.isValidEducationalLevel(request.getEducationalLevel())) {
                 ctx.status(400).json(Map.of(
                         "success", false,
-                        "message", "Nivel educativo inválido. Debe ser uno de: PRIMARIA, SECUNDARIA, UNIVERSIDAD, POSTGRADO, DOCTORADO"
+                        "message", "Nivel educativo inválido. Debe ser uno de: BASICO, MEDIO, GRADO_UNIVERSITARIO, POSTGRADO, DOCTORADO"
                 ));
                 return;
             }
@@ -206,7 +206,7 @@ public class SurveyFormController {
                 if (!surveyFormService.isValidEducationalLevel(request.getEducationalLevel())) {
                     ctx.status(400).json(Map.of(
                             "success", false,
-                            "message", "Nivel educativo inválido. Debe ser uno de: PRIMARIA, SECUNDARIA, UNIVERSIDAD, POSTGRADO, DOCTORADO"
+                            "message", "Nivel educativo inválido. Debe ser uno de: BASICO, MEDIO, GRADO_UNIVERSITARIO, POSTGRADO, DOCTORADO"
                     ));
                     return;
                 }
