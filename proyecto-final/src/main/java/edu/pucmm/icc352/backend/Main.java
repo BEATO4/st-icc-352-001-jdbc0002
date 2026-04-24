@@ -19,7 +19,7 @@ import java.util.Map;
 
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
-    private static final int PORT = 8085;
+    private static final int PORT = 8080;
     private static final int GRPC_PORT = 9090;
     private static Server grpcServer;
 
