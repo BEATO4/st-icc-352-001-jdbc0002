@@ -20,11 +20,11 @@ public class Main extends Application {
         titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
         Label hostLabel = new Label("Host:");
-        TextField hostField = new TextField("localhost");
+        TextField hostField = new TextField("beat04.me");
         hostField.setPrefWidth(300);
 
         Label portLabel = new Label("Puerto:");
-        TextField portField = new TextField("8080");
+        TextField portField = new TextField("443");
         portField.setPrefWidth(300);
 
         Button connectButton = new Button("Conectar");
@@ -97,3 +97,4 @@ public class Main extends Application {
     }
 }
 
+//actualizar clientes rest y grpc para que funcionen con el servidor en beat04.me:443, y actualizar el cliente grpc para que

@@ -25,10 +25,34 @@ public class RestClient {
     private String authToken;
 
     public RestClient(String host, int port) {
-        this.baseUrl = "http://" + host + ":" + port;
+        this(buildBaseUrl(host, port));
+    }
+
+    public RestClient(String baseUrl) {
+        this.baseUrl = normalizeBaseUrl(baseUrl);
         this.httpClient = HttpClients.createDefault();
         this.objectMapper = new ObjectMapper();
         logger.info("Cliente REST conectando a: {}", baseUrl);
+    }
+
+    private static String buildBaseUrl(String host, int port) {
+        String normalizedHost = host == null ? "" : host.trim();
+        if (normalizedHost.startsWith("http://") || normalizedHost.startsWith("https://")) {
+            return normalizedHost;
+        }
+        String protocol = (port == 443) ? "https://" : "http://";
+        return protocol + normalizedHost + ":" + port;
+    }
+
+    private static String normalizeBaseUrl(String rawUrl) {
+        if (rawUrl == null) {
+            return "";
+        }
+        String trimmed = rawUrl.trim();
+        if (trimmed.endsWith("/")) {
+            return trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed;
     }
 
     public LoginResponse login(String username, String password) {

@@ -23,12 +23,13 @@ public class MainApp extends Application {
         titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
         Label hostLabel = new Label("Host:");
-        TextField hostField = new TextField("localhost");
+        TextField hostField = new TextField("beat04.me");
         hostField.setPrefWidth(300);
 
         Label portLabel = new Label("Puerto:");
         TextField portField = new TextField("9090");
         portField.setPrefWidth(300);
+        CheckBox tlsCheckBox = new CheckBox("Usar TLS (recomendado para 443)");
 
         Button connectButton = new Button("Conectar");
         connectButton.setPrefWidth(150);
@@ -48,7 +49,7 @@ public class MainApp extends Application {
         HBox portBox = new HBox(10);
         portBox.getChildren().addAll(portLabel, portField);
 
-        formVBox.getChildren().addAll(titleLabel, hostBox, portBox, connectButton, statusLabel);
+        formVBox.getChildren().addAll(titleLabel, hostBox, portBox, tlsCheckBox, connectButton, statusLabel);
 
         VBox mainVBox = new VBox(20);
         mainVBox.setPadding(new Insets(30));
@@ -61,6 +62,7 @@ public class MainApp extends Application {
             try {
                 String host = hostField.getText().trim();
                 int port = Integer.parseInt(portField.getText().trim());
+                boolean useTls = tlsCheckBox.isSelected();
 
                 if (host.isEmpty()) {
                     statusLabel.setText("[ERROR] Host no puede estar vacío");
@@ -71,7 +73,7 @@ public class MainApp extends Application {
                 statusLabel.setText("Conectando...");
                 statusLabel.setStyle("-fx-text-fill: #ff9800;");
 
-                grpcClient = new GrpcClient(host, port);
+                grpcClient = new GrpcClient(host, port, useTls);
 
                 if (grpcClient.isConnected()) {
                     statusLabel.setText("[OK] Conectado exitosamente");

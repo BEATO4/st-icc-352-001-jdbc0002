@@ -3,30 +3,86 @@ package edu.pucmm.icc352;
 import edu.pucmm.icc352.grpc.*;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 
 public class GrpcClient {
     private static final Logger logger = LoggerFactory.getLogger(GrpcClient.class);
 
-    private final ManagedChannel channel;
-    private final EncuestaServiceGrpc.EncuestaServiceBlockingStub stub;
+    private final String host;
+    private final int port;
+    private volatile boolean useTls;
+
+    private ManagedChannel channel;
+    private EncuestaServiceGrpc.EncuestaServiceBlockingStub stub;
 
     public GrpcClient(String host, int port) {
-        logger.info("Conectando a servidor gRPC en {}:{}", host, port);
+        this(host, port, false);
+    }
 
-        this.channel = ManagedChannelBuilder
-                .forAddress(host, port)
-                .usePlaintext()
-                .build();
+    public GrpcClient(String host, int port, boolean useTls) {
+        this.host = host;
+        this.port = port;
+        this.useTls = useTls;
+        initializeChannel();
+    }
 
+    private synchronized void initializeChannel() {
+        logger.info("Conectando a servidor gRPC en {}:{} (tls={})", host, port, useTls);
+        ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder.forAddress(host, port);
+        if (!useTls) {
+            channelBuilder.usePlaintext();
+        }
+        this.channel = channelBuilder.build();
         this.stub = EncuestaServiceGrpc.newBlockingStub(channel);
-        logger.info("Cliente gRPC conectado exitosamente");
+        logger.info("Cliente gRPC listo");
+    }
+
+    private synchronized void reconnectWithMode(boolean newUseTls) {
+        if (this.useTls == newUseTls) {
+            return;
+        }
+        logger.warn("Reintentando conexión gRPC automáticamente con tls={}", newUseTls);
+        this.useTls = newUseTls;
+        if (channel != null) {
+            channel.shutdownNow();
+        }
+        initializeChannel();
+    }
+
+    private boolean isTlsMismatch(Exception e) {
+        if (!(e instanceof StatusRuntimeException statusEx)) {
+            return false;
+        }
+        if (statusEx.getStatus().getCode() != Status.Code.UNAVAILABLE) {
+            return false;
+        }
+        String message = String.valueOf(statusEx.getMessage()).toLowerCase();
+        return message.contains("not an ssl/tls record")
+                || message.contains("first received frame was not settings")
+                || message.contains("ssl")
+                || message.contains("tls");
+    }
+
+    private <T> T executeWithAutoTlsFallback(Callable<T> call) throws Exception {
+        try {
+            return call.call();
+        } catch (Exception firstError) {
+            if (!isTlsMismatch(firstError)) {
+                throw firstError;
+            }
+            boolean fallbackMode = !useTls;
+            reconnectWithMode(fallbackMode);
+            return call.call();
+        }
     }
 
 
@@ -38,7 +94,7 @@ public class GrpcClient {
                     .setUsuarioId(usuarioId)
                     .build();
 
-            ListarResponse response = stub.listarFormularios(request);
+            ListarResponse response = executeWithAutoTlsFallback(() -> stub.listarFormularios(request));
 
             if (response.getSuccess()) {
                 logger.info("Se obtuvieron {} formularios", response.getFormulariosCount());
@@ -60,7 +116,7 @@ public class GrpcClient {
             logger.info("Solicitando TODOS los formularios");
 
             ListarTodosRequest request = ListarTodosRequest.newBuilder().build();
-            ListarResponse response = stub.listarTodos(request);
+            ListarResponse response = executeWithAutoTlsFallback(() -> stub.listarTodos(request));
 
             if (response.getSuccess()) {
                 logger.info("Se obtuvieron {} formularios", response.getFormulariosCount());
@@ -101,7 +157,7 @@ public class GrpcClient {
                     .setUsername(username)
                     .build();
 
-            CrearFormularioResponse response = stub.crearFormulario(request);
+            CrearFormularioResponse response = executeWithAutoTlsFallback(() -> stub.crearFormulario(request));
 
             if (response.getSuccess()) {
                 logger.info("Formulario creado exitosamente con ID: {}", response.getId());
@@ -139,7 +195,7 @@ public class GrpcClient {
                     .setPhotoBase64(photoBase64 != null ? photoBase64 : "")
                     .build();
 
-            ActualizarFormularioResponse response = stub.actualizarFormulario(request);
+            ActualizarFormularioResponse response = executeWithAutoTlsFallback(() -> stub.actualizarFormulario(request));
 
             if (response.getSuccess()) {
                 logger.info("Formulario actualizado exitosamente");
@@ -163,7 +219,7 @@ public class GrpcClient {
                     .setId(id)
                     .build();
 
-            EliminarFormularioResponse response = stub.eliminarFormulario(request);
+            EliminarFormularioResponse response = executeWithAutoTlsFallback(() -> stub.eliminarFormulario(request));
 
             if (response.getSuccess()) {
                 logger.info("Formulario eliminado exitosamente");
