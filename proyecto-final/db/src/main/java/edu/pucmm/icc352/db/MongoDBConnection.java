@@ -29,7 +29,8 @@ public class MongoDBConnection {
         try {
             // Configure POJO codec for automatic object mapping
             CodecRegistry pojoCodecRegistry = fromProviders(PojoCodecProvider.builder().automatic(true).build());
-            CodecRegistry codecRegistry = fromRegistries(MongoClientSettings.getDefaultCodecRegistry(), pojoCodecRegistry);
+            CodecRegistry codecRegistry = fromRegistries(MongoClientSettings.getDefaultCodecRegistry(),
+                    pojoCodecRegistry);
 
             // Build MongoDB client settings
             MongoClientSettings settings = MongoClientSettings.builder()
@@ -51,7 +52,9 @@ public class MongoDBConnection {
      * Get singleton instance with default connection settings
      */
     public static synchronized MongoDBConnection getInstance() {
-        return getInstance(DEFAULT_CONNECTION_STRING, DEFAULT_DATABASE_NAME);
+        String uri = System.getenv("MONGODB_URI") != null ? System.getenv("MONGODB_URI") : DEFAULT_CONNECTION_STRING;
+        String db = System.getenv("MONGODB_DB") != null ? System.getenv("MONGODB_DB") : DEFAULT_DATABASE_NAME;
+        return getInstance(uri, db);
     }
 
     /**
