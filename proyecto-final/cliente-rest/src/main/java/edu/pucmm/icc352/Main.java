@@ -96,5 +96,3 @@ public class Main extends Application {
         launch(args);
     }
 }
-
-//actualizar clientes rest y grpc para que funcionen con el servidor en beat04.me:443, y actualizar el cliente grpc para que

@@ -4,24 +4,21 @@ import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
 
-/**
- * SurveyForm model representing a survey record
- */
+
 public class SurveyForm {
     private ObjectId id;
     private String name;
     private String sector;
-    private String educationalLevel; // PRIMARY, SECONDARY, UNIVERSITY_DEGREE, POSTGRADUATE, DOCTORAL
+    private String educationalLevel;
     private Double latitude;
     private Double longitude;
-    private String photoBase64; // Photo stored in base64 format
-    private String userId; // ID of the user who created the form
-    private String username; // Username for convenience
+    private String photoBase64;
+    private String userId;
+    private String username;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private boolean synced; // Whether this form has been synced from client
+    private boolean synced;
 
-    // Default constructor required for MongoDB POJO mapping
     public SurveyForm() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -42,7 +39,6 @@ public class SurveyForm {
         this.username = username;
     }
 
-    // Getters and Setters
     public ObjectId getId() {
         return id;
     }

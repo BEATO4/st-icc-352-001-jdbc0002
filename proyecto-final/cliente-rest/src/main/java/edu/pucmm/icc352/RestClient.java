@@ -74,7 +74,6 @@ public class RestClient {
             if (statusCode == 200) {
                 JsonNode jsonResponse = objectMapper.readTree(responseBody);
 
-                // Backend actual devuelve token/user en raiz, pero dejamos fallback a data.* por robustez
                 String token = jsonResponse.path("token").asText();
                 if (token.isEmpty()) token = jsonResponse.path("data").path("token").asText();
 

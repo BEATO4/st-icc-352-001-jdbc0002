@@ -7,9 +7,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
-/**
- * JWT authentication filter for protecting routes
- */
 public class JwtAuthFilter implements Handler {
 
     @Override
@@ -39,17 +36,11 @@ public class JwtAuthFilter implements Handler {
         ctx.attribute("role", JwtUtil.extractRole(token));
     }
 
-    /**
-     * Check if user has admin role
-     */
     public static boolean isAdmin(Context ctx) {
         String role = ctx.attribute("role");
         return role != null && role.equalsIgnoreCase("ADMIN");
     }
 
-    /**
-     * Require admin role
-     */
     public static void requireAdmin(Context ctx) {
         if (!isAdmin(ctx)) {
             ctx.status(403).json(Map.of(

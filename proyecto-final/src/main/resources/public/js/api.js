@@ -1,8 +1,3 @@
-/**
- * api.js — Wrappers around the FieldForm REST API.
- * All methods return { ok: true, data } or { ok: false, message, status }.
- */
-
 const API = (() => {
   const BASE = '/api';
 
@@ -27,12 +22,10 @@ const API = (() => {
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
     } catch (networkErr) {
-      // fetch() itself threw — server is unreachable
       console.error('[API] Network error on', method, path, networkErr);
       return { ok: false, status: 0, message: 'Could not reach the server. Check it is running on port 8080.' };
     }
 
-    // Parse body — guard against non-JSON responses (HTML error pages, etc.)
     let data;
     try {
       data = await res.json();
@@ -50,7 +43,6 @@ const API = (() => {
     return { ok: true, status: res.status, data };
   }
 
-  /* ── AUTH ──────────────────────────────── */
   const auth = {
     register: (username, password, role) =>
         request('POST', '/auth/register', { username, password, role }),
@@ -61,7 +53,6 @@ const API = (() => {
     me: () => request('GET', '/auth/me'),
   };
 
-  /* ── SURVEYS ───────────────────────────── */
   const surveys = {
     getAll:    ()             => request('GET',    '/surveys'),
     getById:   (id)           => request('GET',    `/surveys/${id}`),
@@ -70,7 +61,6 @@ const API = (() => {
     delete:    (id)           => request('DELETE', `/surveys/${id}`),
   };
 
-  /* ── SYNC ──────────────────────────────── */
    async function syncQueue() {
      const queue = SurveyStorage.getPendingQueue();
      if (!queue.length) return { synced: 0, failed: 0, errors: [] };
@@ -81,7 +71,6 @@ const API = (() => {
      for (const record of queue) {
        const id = record.id;   // id local necesario para actualizar el estado después
 
-       // Solo enviar los campos que SurveyFormRequest espera
        const payload = {
          name:             record.name,
          sector:           record.sector,

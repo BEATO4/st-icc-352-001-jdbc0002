@@ -458,7 +458,6 @@
       DOCTORADO: 'Doctorado'
     };
 
-    /* ── State ────────────────────────────────────── */
     let allRecords = [];
     let filtered = [];
     let markers = [];
@@ -466,7 +465,6 @@
     let dataSource = 'server';
     let map, markerGroup;
 
-    /* ── Init map ─────────────────────────────────── */
     function initMap() {
       map = L.map('map', { zoomControl: true });
 
@@ -479,7 +477,6 @@
       document.getElementById('map-loading').classList.add('hidden');
     }
 
-    /* ── Custom marker icon ───────────────────────── */
     function makeIcon(color) {
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36">
       <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 24 12 24s12-15 12-24C24 5.37 18.63 0 12 0z" fill="${color}"/>
@@ -498,10 +495,8 @@
     const iconActive = makeIcon('#14213D');
     const iconNoGeo = null;
 
-    /* ── Load data ────────────────────────────────── */
     async function loadServer() {
       if (!navigator.onLine) {
-        // Silently fall back to local when offline
         document.getElementById('btn-server').classList.remove('active');
         document.getElementById('btn-local').classList.add('active');
         dataSource = 'local';
@@ -586,7 +581,6 @@
       document.getElementById('s-sectors').textContent = sectors.size;
     }
 
-    /* ── Markers ──────────────────────────────────── */
     function renderMarkers() {
       markerGroup.clearLayers();
       markers = [];
@@ -610,7 +604,6 @@
       }
     }
 
-    /** Popup sin foto — se muestra de inmediato */
     function buildPopupSkeleton(r) {
       const edu = EDU[r.educationalLevel] || r.educationalLevel || '—';
       const date = r.createdAt ? new Date(r.createdAt).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
@@ -628,7 +621,6 @@
     `;
     }
 
-    /** Carga la foto en background via getById solo cuando el popup se abre */
     async function loadPopupPhoto(r, marker) {
       if (!r.hasPhoto || !r.id || dataSource !== 'server') return;
       const slot = document.getElementById('photo-slot-' + r.id);
@@ -644,7 +636,6 @@
       marker.update();
     }
 
-    /* ── List ─────────────────────────────────────── */
     function renderList() {
       const container = document.getElementById('sidebar-list');
       document.getElementById('list-count').textContent = filtered.length;
@@ -676,7 +667,6 @@
       }).join('');
     }
 
-    /* ── Activate (click sidebar item or marker) ──── */
     function activateItem(markerIdx, recordKey) {
       if (activeIdx >= 0 && markers[activeIdx]) {
         markers[activeIdx].setIcon(iconDefault);
@@ -693,7 +683,6 @@
       renderList();
     }
 
-    /* ── Helpers ──────────────────────────────────── */
     function escHtml(s) {
       return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
@@ -701,9 +690,7 @@
       return String(s || '').replace(/'/g, "\\'");
     }
 
-    /* ── Boot ─────────────────────────────────────── */
     initMap();
-    // If offline, start in local mode automatically
     setSource(navigator.onLine ? 'server' : 'local');
   </script>
 </body>

@@ -11,9 +11,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Service for authentication operations
- */
 public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private final UserRepository userRepository;
@@ -26,9 +23,6 @@ public class AuthService {
         this(new UserRepository());
     }
 
-    /**
-     * Register a new user
-     */
     public Map<String, Object> register(String username, String password, String role) {
         Map<String, Object> response = new HashMap<>();
 
@@ -76,9 +70,7 @@ public class AuthService {
         return response;
     }
 
-    /**
-     * Login user
-     */
+
     public Map<String, Object> login(String username, String password) {
         Map<String, Object> response = new HashMap<>();
 
@@ -123,9 +115,7 @@ public class AuthService {
         return response;
     }
 
-    /**
-     * Validate JWT token
-     */
+
     public Map<String, Object> validateToken(String token) {
         Map<String, Object> response = new HashMap<>();
 
@@ -154,9 +144,6 @@ public class AuthService {
         return response;
     }
 
-    /**
-     * Helper method to create user map for response (without password hash)
-     */
     private Map<String, Object> createUserMap(User user) {
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("id", user.getIdAsString());

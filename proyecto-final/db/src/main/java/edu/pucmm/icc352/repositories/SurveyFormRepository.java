@@ -16,9 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repository class for SurveyForm database operations
- */
 public class SurveyFormRepository {
     private static final Logger logger = LoggerFactory.getLogger(SurveyFormRepository.class);
     private final MongoCollection<SurveyForm> collection;
@@ -32,23 +29,15 @@ public class SurveyFormRepository {
         this(MongoDBConnection.getInstance().getDatabase());
     }
 
-    /**
-     * Create indexes for the survey_forms collection
-     */
+
     private void createIndexes() {
-        // Create index on userId for faster queries
         collection.createIndex(Indexes.ascending("userId"));
-        // Create index on createdAt for sorting
         collection.createIndex(Indexes.descending("createdAt"));
-        // Indexes for coordinate filters/sorts (lat/lon are simple doubles, not GeoJSON)
         collection.createIndex(Indexes.ascending("latitude"));
         collection.createIndex(Indexes.ascending("longitude"));
         logger.info("Created indexes on survey_forms collection");
     }
 
-    /**
-     * Create a new survey form
-     */
     public SurveyForm create(SurveyForm form) {
         try {
             collection.insertOne(form);
@@ -60,9 +49,6 @@ public class SurveyFormRepository {
         }
     }
 
-    /**
-     * Find survey form by ID
-     */
     public Optional<SurveyForm> findById(ObjectId id) {
         try {
             SurveyForm form = collection.find(Filters.eq("_id", id)).first();
@@ -73,9 +59,6 @@ public class SurveyFormRepository {
         }
     }
 
-    /**
-     * Find survey form by ID string
-     */
     public Optional<SurveyForm> findById(String id) {
         try {
             return findById(new ObjectId(id));
@@ -85,9 +68,6 @@ public class SurveyFormRepository {
         }
     }
 
-    /**
-     * Find all survey forms
-     */
     public List<SurveyForm> findAll() {
         try {
             return collection.find()
@@ -99,9 +79,6 @@ public class SurveyFormRepository {
         }
     }
 
-    /**
-     * Find all survey forms by user ID
-     */
     public List<SurveyForm> findByUserId(String userId) {
         try {
             return collection.find(Filters.eq("userId", userId))
@@ -113,9 +90,6 @@ public class SurveyFormRepository {
         }
     }
 
-    /**
-     * Find all survey forms by username
-     */
     public List<SurveyForm> findByUsername(String username) {
         try {
             return collection.find(Filters.eq("username", username))
@@ -127,9 +101,6 @@ public class SurveyFormRepository {
         }
     }
 
-    /**
-     * Update a survey form
-     */
     public boolean update(SurveyForm form) {
         try {
             return collection.replaceOne(
@@ -142,9 +113,6 @@ public class SurveyFormRepository {
         }
     }
 
-    /**
-     * Delete a survey form by ID
-     */
     public boolean delete(ObjectId id) {
         try {
             return collection.deleteOne(Filters.eq("_id", id)).getDeletedCount() > 0;
@@ -154,9 +122,7 @@ public class SurveyFormRepository {
         }
     }
 
-    /**
-     * Delete a survey form by ID string
-     */
+
     public boolean delete(String id) {
         try {
             return delete(new ObjectId(id));
@@ -166,23 +132,14 @@ public class SurveyFormRepository {
         }
     }
 
-    /**
-     * Count total survey forms
-     */
     public long count() {
         return collection.countDocuments();
     }
 
-    /**
-     * Count survey forms by user ID
-     */
     public long countByUserId(String userId) {
         return collection.countDocuments(Filters.eq("userId", userId));
     }
 
-    /**
-     * Find forms with geolocation data
-     */
     public List<SurveyForm> findAllWithLocation() {
         try {
             return collection.find(

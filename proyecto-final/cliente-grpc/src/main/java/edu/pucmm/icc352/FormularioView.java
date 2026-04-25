@@ -388,12 +388,9 @@ public class FormularioView {
         ComboBox<String> nivelCombo = new ComboBox<>();
         nivelCombo.getItems().addAll("BASICO", "MEDIO", "GRADO_UNIVERSITARIO", "POSTGRADO", "DOCTORADO");
 
-        // Normalise legacy / English enum names to the Spanish names used in the
-        // ComboBox
         String nivel = normalizarNivel(row.getNivelEducativo());
         nivelCombo.setValue(nivel != null ? nivel : "PRIMARIA");
 
-        // Guard against null coordinates
         double latVal = row.getLatitud() != null ? row.getLatitud() : 0.0;
         double lonVal = row.getLongitud() != null ? row.getLongitud() : 0.0;
         TextField latField = new TextField(String.valueOf(latVal));
@@ -514,8 +511,6 @@ public class FormularioView {
             }
         }
     }
-
-    // ...existing code...
 
     public static class FormularioRow {
         private final String id;

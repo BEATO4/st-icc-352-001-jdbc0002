@@ -246,9 +246,6 @@ public class GrpcClient {
         }
     }
 
-    /**
-     * Verificar si el canal está conectado
-     */
     public boolean isConnected() {
         return channel != null && !channel.isShutdown();
     }

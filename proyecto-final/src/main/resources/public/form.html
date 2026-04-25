@@ -351,7 +351,6 @@
     );
   }
 
-  /* ── File upload fallback ──────────────────────────── */
   function handlePhotoFile(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -373,7 +372,6 @@
     document.getElementById('photo-preview').style.display = 'block';
   }
 
-  /* ── Live camera (MediaDevices API) ────────────────── */
   let camStream  = null;
   let camFacing  = 'environment'; // 'environment' = rear, 'user' = front
 
@@ -393,7 +391,6 @@
   }
 
   async function startStream() {
-    // Stop any existing stream first
     if (camStream) camStream.getTracks().forEach(t => t.stop());
 
     const video  = document.getElementById('cam-video');
@@ -447,7 +444,6 @@
     document.getElementById('cam-video').srcObject = null;
   }
 
-  // Close modal with Escape key
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCamera(); });
 
   function buildPayload() {
@@ -526,7 +522,6 @@
     applyFormData(res.data.form || {});
   }
 
-  /* ── SAVE DRAFT ────────────────────────── */
   async function saveDraft() {
     if (!document.getElementById('f-name').value.trim()) { toast('Enter at least a name to save a draft'); return; }
 
@@ -645,8 +640,6 @@
 
         if (res.ok) {
           const serverId = res.data?.form?.id;
-          // Store with serverId as the primary key so refreshFromServer()
-          // upserts the same key instead of creating a second record.
           await SurveyStorage.upsertSurvey({
             ...payload,
             id:       serverId || payload.id,

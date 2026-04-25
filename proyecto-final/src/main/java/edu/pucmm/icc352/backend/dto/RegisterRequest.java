@@ -1,8 +1,5 @@
 package edu.pucmm.icc352.backend.dto;
 
-/**
- * DTO for registration request
- */
 public class RegisterRequest {
     private String username;
     private String password;

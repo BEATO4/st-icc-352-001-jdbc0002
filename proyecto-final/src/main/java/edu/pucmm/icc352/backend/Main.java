@@ -165,10 +165,8 @@ public class Main {
         logger.info("Server started on port {}", PORT);
         logger.info("Route overview available at http://localhost:{}/api/routes", PORT);
 
-        // ── Start gRPC Server ─────────────────────────────────────────────────
         startGrpcServer(surveyFormService);
 
-        // ── Shutdown Hook ─────────────────────────────────────────────────────
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             logger.info("Shutting down gRPC server...");
             if (grpcServer != null) {

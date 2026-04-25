@@ -1,11 +1,6 @@
-/**
- * storage.js — Offline queue and local persistence using IndexedDB
- */
-
 const SurveyStorage = (() => {
   const USER_KEY    = 'fieldform_user';
 
-  /* ── USER SESSION (localStorage) ─────────── */
   function saveUser(user) {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
   }
@@ -17,7 +12,6 @@ const SurveyStorage = (() => {
     localStorage.removeItem(USER_KEY);
   }
 
-  /* ── INDEXED DB PARA FORMULARIOS ─────────── */
   const DB_NAME = 'FormularioDB';
   const DB_VERSION = 1;
   const STORE_NAME = 'formularios';
@@ -36,7 +30,6 @@ const SurveyStorage = (() => {
     });
   }
 
-  /* ── SURVEYS ───────────────────────────── */
   async function loadSurveys() {
     const db = await openDB();
     return new Promise((resolve, reject) => {
@@ -88,8 +81,6 @@ const SurveyStorage = (() => {
   async function removeSurvey(id) {
     const db      = await openDB();
     const all     = await loadSurveys();
-    // Collect every entry that logically represents this record
-    // (could be a local-id entry AND a server-id entry for the same form)
     const toDelete = all.filter(s => s.id === id || s.serverId === id);
     if (!toDelete.length) return;
 

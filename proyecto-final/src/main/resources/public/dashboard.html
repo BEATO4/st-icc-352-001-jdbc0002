@@ -244,8 +244,6 @@
 </head>
 
 <body>
-
-  <!-- Top bar -->
   <div class="top-bar">
     <div class="top-bar-brand" onclick="window.location.href='/dashboard.html'">
       <div class="top-bar-brand-icon">
@@ -569,27 +567,21 @@
         serverId: serverForm.id
       }));
 
-      // Upsert every record that exists on the server
       for (const item of serverSurveys) {
         await SurveyStorage.upsertSurvey(item);
       }
 
-      // ── Remove zombie records ────────────────────────────────────────────────
-      // Any local record with status 'synced' that is NOT in the server response
-      // was deleted externally (via gRPC, REST, etc.). Remove it from IndexedDB.
       const serverIds = new Set(serverSurveys.map(s => s.id));
       const allLocal = await SurveyStorage.loadSurveys();
       for (const local of allLocal) {
         if (local.status === 'synced') {
           const localId = local.id;
           const serverId = local.serverId;
-          // Gone from server if neither its own id nor its serverId is in the response
           if (!serverIds.has(localId) && !serverIds.has(serverId)) {
             await SurveyStorage.removeSurvey(localId);
           }
         }
       }
-      // ────────────────────────────────────────────────────────────────────────
 
       if (!silent) toast(`[OK] ${serverSurveys.length} encuesta(s) descargada(s)`);
       render();

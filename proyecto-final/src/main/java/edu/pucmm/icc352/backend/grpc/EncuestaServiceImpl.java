@@ -10,9 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-/**
- * Implementación del servicio gRPC EncuestaService
- */
+
 public class EncuestaServiceImpl extends EncuestaServiceGrpc.EncuestaServiceImplBase {
     private static final Logger logger = LoggerFactory.getLogger(EncuestaServiceImpl.class);
     private final SurveyFormService surveyFormService;

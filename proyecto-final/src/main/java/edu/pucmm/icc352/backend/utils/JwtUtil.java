@@ -9,14 +9,10 @@ import org.slf4j.LoggerFactory;
 import javax.crypto.SecretKey;
 import java.util.Date;
 
-/**
- * Utility class for JWT token generation and validation.
- * Written for jjwt 0.12 / 0.13 — the parserBuilder() API was removed in 0.12.
- */
 public class JwtUtil {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
 
-    private static final String DEFAULT_SECRET = "MySecureJWTSecret1234567890123456"; // 32+ chars for HS256
+    private static final String DEFAULT_SECRET = "MySecureJWTSecret1234567890123456";
     private static final String SECRET_STRING =
             System.getenv("JWT_SECRET") != null && !System.getenv("JWT_SECRET").isBlank()
                     ? System.getenv("JWT_SECRET")
@@ -25,10 +21,7 @@ public class JwtUtil {
 
     private static final long EXPIRATION_TIME = 1000L * 60 * 60 * 24;
 
-    /**
-     * Generate a signed JWT for a user.
-     * Claims: userId, username, role — subject is set to username.
-     */
+
     public static String generateToken(String userId, String username, String role) {
         return Jwts.builder()
                 .claims()
@@ -43,9 +36,6 @@ public class JwtUtil {
                 .compact();
     }
 
-    /**
-     * Returns true if the token has a valid signature and is not expired.
-     */
     public static boolean validateToken(String token) {
         try {
             Jwts.parser()
@@ -59,10 +49,6 @@ public class JwtUtil {
         }
     }
 
-    /**
-     * Parse and return the Claims payload.
-     * Returns null if the token is invalid or expired.
-     */
     public static Claims extractClaims(String token) {
         try {
             return Jwts.parser()
@@ -91,10 +77,6 @@ public class JwtUtil {
         return claims != null ? claims.get("role", String.class) : null;
     }
 
-    /**
-     * Returns true if the token's expiration timestamp is in the past.
-     * Also returns true if the token cannot be parsed at all.
-     */
     public static boolean isTokenExpired(String token) {
         Claims claims = extractClaims(token);
         if (claims == null) return true;

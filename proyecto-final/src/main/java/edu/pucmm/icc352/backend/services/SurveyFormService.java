@@ -8,9 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Service for survey form operations
- */
+
 public class SurveyFormService {
     private static final Logger logger = LoggerFactory.getLogger(SurveyFormService.class);
     private final SurveyFormRepository formRepository;
@@ -23,9 +21,6 @@ public class SurveyFormService {
         this(new SurveyFormRepository());
     }
 
-    /**
-     * Create a new survey form
-     */
     public SurveyForm createForm(SurveyForm form) {
         try {
             if (form.getName() == null || form.getName().trim().isEmpty()) {
@@ -48,44 +43,31 @@ public class SurveyFormService {
         }
     }
 
-    /**
-     * Get survey form by ID
-     */
+
     public Optional<SurveyForm> getFormById(String id) {
         return formRepository.findById(id);
     }
 
-    /**
-     * Get all survey forms
-     */
+
     public List<SurveyForm> getAllForms() {
         return formRepository.findAll();
     }
 
-    /**
-     * Get all survey forms by user ID
-     */
+
     public List<SurveyForm> getFormsByUserId(String userId) {
         return formRepository.findByUserId(userId);
     }
 
-    /**
-     * Get all survey forms by username
-     */
+
     public List<SurveyForm> getFormsByUsername(String username) {
         return formRepository.findByUsername(username);
     }
 
-    /**
-     * Get all forms with geolocation data
-     */
     public List<SurveyForm> getFormsWithLocation() {
         return formRepository.findAllWithLocation();
     }
 
-    /**
-     * Update survey form
-     */
+
     public boolean updateForm(SurveyForm form) {
         try {
             return formRepository.update(form);
@@ -95,9 +77,7 @@ public class SurveyFormService {
         }
     }
 
-    /**
-     * Delete survey form
-     */
+
     public boolean deleteForm(String id) {
         try {
             return formRepository.delete(id);
@@ -107,23 +87,17 @@ public class SurveyFormService {
         }
     }
 
-    /**
-     * Get total form count
-     */
+
     public long getFormCount() {
         return formRepository.count();
     }
 
-    /**
-     * Get form count by user ID
-     */
+
     public long getFormCountByUserId(String userId) {
         return formRepository.countByUserId(userId);
     }
 
-    /**
-     * Validate educational level
-     */
+
     public boolean isValidEducationalLevel(String level) {
         if (level == null)
             return false;

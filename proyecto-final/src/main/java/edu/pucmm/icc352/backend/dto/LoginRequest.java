@@ -1,8 +1,5 @@
 package edu.pucmm.icc352.backend.dto;
 
-/**
- * DTO for login request
- */
 public class LoginRequest {
     private String username;
     private String password;
