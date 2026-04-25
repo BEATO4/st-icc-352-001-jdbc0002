@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017
+      - MONGODB_DB=survey_app
+    depends_on:
+      - mongo
+    networks:
+      - survey-network
+
+  mongo:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - survey-network
+
+volumes:
+  mongo_data:
+
+networks:
+  survey-network:
+    driver: bridge
