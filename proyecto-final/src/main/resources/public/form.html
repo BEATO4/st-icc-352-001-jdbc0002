@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FieldForm — New Survey</title>
+  <title>FieldForm — Survey Form</title>
   <link rel="stylesheet" href="/css/style.css">
   <style>
     body { display: flex; flex-direction: column; }
@@ -53,25 +53,81 @@
     .geo-btn svg { width: 15px; height: 15px; fill: currentColor; }
 
     /* Photo */
-    .photo-upload {
-      border: 1.5px dashed var(--border); border-radius: var(--radius-md);
-      padding: 28px 20px; text-align: center; cursor: pointer;
-      transition: all var(--transition); position: relative;
+    .photo-actions {
+      display: flex; gap: 10px; flex-wrap: wrap;
     }
-    .photo-upload:hover { border-color: var(--clay); background: var(--clay-pale); }
-    .photo-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-    .photo-upload-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.5; }
-    .photo-upload-text { font-size: 13px; color: var(--ink-ghost); }
+    .btn-camera {
+      flex: 1; padding: 14px 10px; border-radius: var(--radius-md);
+      border: 1.5px dashed var(--border); background: var(--parch);
+      cursor: pointer; display: flex; flex-direction: column;
+      align-items: center; gap: 8px; transition: all var(--transition);
+      font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+      color: var(--ink-soft); position: relative;
+    }
+    .btn-camera input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .btn-camera:hover { border-color: var(--clay); color: var(--clay); background: var(--clay-pale); }
+    .btn-camera svg { width: 22px; height: 22px; fill: currentColor; }
     .photo-preview {
       display: none; margin-top: 12px; border-radius: var(--radius-md);
-      overflow: hidden; max-height: 180px; position: relative;
+      overflow: hidden; max-height: 220px; position: relative;
     }
     .photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .photo-remove {
-      position: absolute; top: 6px; right: 6px; width: 26px; height: 26px;
-      background: rgba(0,0,0,0.5); border-radius: 50%; border: none;
-      color: white; font-size: 14px; cursor: pointer; display: flex;
+      position: absolute; top: 6px; right: 6px; width: 28px; height: 28px;
+      background: rgba(0,0,0,0.55); border-radius: 50%; border: none;
+      color: white; font-size: 15px; cursor: pointer; display: flex;
       align-items: center; justify-content: center;
+    }
+
+    /* Camera modal */
+    .cam-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.85); align-items: center; justify-content: center;
+    }
+    .cam-modal-overlay.open { display: flex; }
+    .cam-modal {
+      background: #111; border-radius: 16px; overflow: hidden;
+      width: min(96vw, 480px); display: flex; flex-direction: column;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+    }
+    .cam-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; background: #1a1a1a;
+    }
+    .cam-title { color: #fff; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; }
+    .cam-flip {
+      background: rgba(255,255,255,0.12); border: none; color: #fff;
+      border-radius: 8px; padding: 7px 12px; cursor: pointer;
+      font-size: 12px; font-family: 'Syne', sans-serif; font-weight: 600;
+      display: flex; align-items: center; gap: 6px; transition: background 0.2s;
+    }
+    .cam-flip:hover { background: rgba(255,255,255,0.22); }
+    .cam-flip svg { width: 16px; height: 16px; fill: currentColor; }
+    #cam-video {
+      width: 100%; aspect-ratio: 4/3; object-fit: cover;
+      background: #000; display: block;
+    }
+    .cam-footer {
+      display: flex; align-items: center; justify-content: center;
+      gap: 20px; padding: 18px 20px; background: #1a1a1a;
+    }
+    .cam-capture {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: #fff; border: 4px solid rgba(255,255,255,0.3);
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 0 0 6px rgba(255,255,255,0.15);
+    }
+    .cam-capture:active { transform: scale(0.92); }
+    .cam-cancel {
+      background: rgba(255,255,255,0.1); border: none; color: #ccc;
+      padding: 10px 18px; border-radius: 10px; cursor: pointer;
+      font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+      transition: background 0.2s;
+    }
+    .cam-cancel:hover { background: rgba(255,255,255,0.18); color: #fff; }
+    .cam-error {
+      padding: 20px; text-align: center; color: #f87171;
+      font-size: 13px; display: none;
     }
 
     /* Submit row */
@@ -100,7 +156,7 @@
   <button class="btn-back" onclick="window.history.back()">
     <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
-  <div class="form-top-title">New Survey</div>
+  <div class="form-top-title" id="form-title">New Survey</div>
 </div>
 
 <div class="page-content narrow">
@@ -140,12 +196,12 @@
       <div class="field">
         <label>Education Level <span style="color:var(--clay)">*</span></label>
         <select id="f-edu" onchange="updateProgress()">
-          <option value="">Select level…</option>
-          <option value="PRIMARY">Primary</option>
-          <option value="SECONDARY">Secondary</option>
-          <option value="UNIVERSITY_DEGREE">University</option>
-          <option value="POSTGRADUATE">Postgraduate</option>
-          <option value="DOCTORAL">Doctoral</option>
+          <option value="">Selecciona un nivel…</option>
+          <option value="BASICO">Básico</option>
+          <option value="MEDIO">Medio</option>
+          <option value="GRADO_UNIVERSITARIO">Grado Universitario</option>
+          <option value="POSTGRADO">Postgrado</option>
+          <option value="DOCTORADO">Doctorado</option>
         </select>
       </div>
     </div>
@@ -189,23 +245,53 @@
         <div class="card-desc">Optional — stored on device</div>
       </div>
     </div>
-    <div class="photo-upload" id="photo-upload-area">
-      <input type="file" id="f-photo" accept="image/*" capture="environment" onchange="handlePhoto(event)">
-      <div class="photo-upload-icon">📷</div>
-      <div class="photo-upload-text">Tap to take a photo or choose an image</div>
+
+    <div class="photo-actions">
+      <!-- Live camera button -->
+      <button class="btn-camera" id="btn-open-camera" onclick="openCamera()">
+        <svg viewBox="0 0 24 24"><path d="M12 15.2A3.2 3.2 0 0 1 8.8 12 3.2 3.2 0 0 1 12 8.8 3.2 3.2 0 0 1 15.2 12 3.2 3.2 0 0 1 12 15.2M12 7A5 5 0 0 0 7 12a5 5 0 0 0 5 5 5 5 0 0 0 5-5A5 5 0 0 0 12 7M20 4h-3.17L15 2H9L7.17 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/></svg>
+        Take Photo
+      </button>
+      <!-- File upload fallback -->
+      <button class="btn-camera" style="position:relative;">
+        <input type="file" id="f-photo" accept="image/*" onchange="handlePhotoFile(event)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
+        <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+        Upload File
+      </button>
     </div>
+
     <div class="photo-preview" id="photo-preview">
       <img id="photo-img" src="" alt="Preview">
       <button class="photo-remove" onclick="removePhoto()">✕</button>
     </div>
   </div>
 
+  <!-- Camera modal -->
+  <div class="cam-modal-overlay" id="cam-modal">
+    <div class="cam-modal">
+      <div class="cam-header">
+        <span class="cam-title">📷 Take a Photo</span>
+        <button class="cam-flip" id="cam-flip-btn" onclick="flipCamera()">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41zM20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h4.05l1.83-2h4.24l1.83 2H20v12z"/></svg>
+          Flip
+        </button>
+      </div>
+      <video id="cam-video" autoplay playsinline muted></video>
+      <div class="cam-error" id="cam-error">Could not access camera. Please allow camera permission or use the Upload File option.</div>
+      <div class="cam-footer">
+        <button class="cam-cancel" onclick="closeCamera()">Cancel</button>
+        <button class="cam-capture" id="cam-capture-btn" onclick="capturePhoto()" title="Capture"></button>
+      </div>
+    </div>
+  </div>
+  <canvas id="cam-canvas" style="display:none;"></canvas>
+
   <!-- Submit -->
   <div class="submit-row">
     <button class="btn-secondary" onclick="saveDraft()">Save Draft</button>
-    <button class="btn-submit"    onclick="submitForm()">
+      <button class="btn-submit" id="submit-btn" onclick="submitForm()">
       <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-      Submit Survey
+        <span id="submit-label">Submit Survey</span>
     </button>
   </div>
 </div>
@@ -218,8 +304,10 @@
 <script>
   const user = requireAuth();
   let photoData = null;
+  let isSubmitting = false;
+  let editingId = null;
+  let editingRecord = null;
 
-  /* ── PROGRESS BAR ──────────────────────── */
   function updateProgress() {
     const fields = [
       document.getElementById('f-name').value.trim(),
@@ -231,7 +319,19 @@
     document.getElementById('prog-pct').textContent = pct + '%';
   }
 
-  /* ── GEOLOCATION ───────────────────────── */
+  function setSubmitState(disabled) {
+    const submitBtn = document.getElementById('submit-btn');
+    if (!submitBtn) return;
+    submitBtn.disabled = disabled;
+    submitBtn.style.opacity = disabled ? '0.7' : '1';
+    submitBtn.style.cursor = disabled ? 'wait' : 'pointer';
+  }
+
+  function goToDashboard() {
+    sessionStorage.setItem('fieldform_refresh_dashboard', '1');
+    window.location.href = '/dashboard.html';
+  }
+
   function getLocation() {
     if (!navigator.geolocation) { toast('Geolocation not supported'); return; }
     const btn = document.getElementById('geo-btn');
@@ -251,93 +351,342 @@
     );
   }
 
-  /* ── PHOTO ─────────────────────────────── */
-  function handlePhoto(event) {
+  function handlePhotoFile(event) {
     const file = event.target.files[0];
     if (!file) return;
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload  = e => resolve(e.target.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    }).then(data => {
-      photoData = data;
-      document.getElementById('photo-img').src = data;
-      document.getElementById('photo-preview').style.display = 'block';
-      document.getElementById('photo-upload-area').style.display = 'none';
-    });
+    const reader = new FileReader();
+    reader.onload  = e => setPhotoPreview(e.target.result);
+    reader.onerror = () => toast('Could not read the file');
+    reader.readAsDataURL(file);
   }
 
   function removePhoto() {
     photoData = null;
     document.getElementById('photo-preview').style.display = 'none';
-    document.getElementById('photo-upload-area').style.display = 'block';
     document.getElementById('f-photo').value = '';
   }
 
-  /* ── BUILD PAYLOAD ─────────────────────── */
-  function buildPayload() {
-    return {
-      id:               'local-' + Date.now(),
-      name:             document.getElementById('f-name').value.trim(),
-      sector:           document.getElementById('f-sector').value.trim(),
-      educationalLevel: document.getElementById('f-edu').value,
-      latitude:         parseFloat(document.getElementById('f-lat').value) || null,
-      longitude:        parseFloat(document.getElementById('f-lng').value) || null,
-      photoBase64:      photoData,
-      userId:           user.username,
-      username:         user.username,
-      createdAt:        new Date().toISOString(),
-    };
+  function setPhotoPreview(dataUrl) {
+    photoData = dataUrl;
+    document.getElementById('photo-img').src = dataUrl;
+    document.getElementById('photo-preview').style.display = 'block';
   }
 
-  /* ── SAVE DRAFT ────────────────────────── */
-  function saveDraft() {
-    if (!document.getElementById('f-name').value.trim()) { toast('Enter at least a name to save a draft'); return; }
-    Storage.addSurvey({ ...buildPayload(), status: 'local' });
-    document.getElementById('save-indicator').classList.add('visible');
-    toast('Draft saved to device');
+  let camStream  = null;
+  let camFacing  = 'environment'; // 'environment' = rear, 'user' = front
+
+  async function openCamera() {
+    const modal  = document.getElementById('cam-modal');
+    const video  = document.getElementById('cam-video');
+    const errEl  = document.getElementById('cam-error');
+    const capBtn = document.getElementById('cam-capture-btn');
+
+    modal.classList.add('open');
+    errEl.style.display  = 'none';
+    video.style.display  = 'block';
+    capBtn.style.display = 'block';
+    document.getElementById('cam-flip-btn').style.display = 'flex';
+
+    await startStream();
   }
 
-  /* ── SUBMIT ────────────────────────────── */
-  async function submitForm() {
-    const name   = document.getElementById('f-name').value.trim();
-    const sector = document.getElementById('f-sector').value.trim();
-    const edu    = document.getElementById('f-edu').value;
-    if (!name || !sector || !edu) { toast('Por favor llena todos los campos requeridos'); return; }
+  async function startStream() {
+    if (camStream) camStream.getTracks().forEach(t => t.stop());
 
-    const payload = buildPayload();
+    const video  = document.getElementById('cam-video');
+    const errEl  = document.getElementById('cam-error');
+    const capBtn = document.getElementById('cam-capture-btn');
 
-    if (navigator.onLine) {
-      const res = await API.surveys.create(payload);
-
-      if (res.ok) {
-        // Guardar en localStorage como 'synced' para que el dashboard lo muestre
-        Storage.addSurvey({ ...payload, status: 'synced', serverId: res.data?.form?.id });
-        toast('¡Encuesta enviada!');
-        window.location.href = '/dashboard.html';
-        return;
-      }
-
-      // Token expirado → redirigir al login
-      if (res.status === 401) {
-        Storage.clearUser();
-        window.location.href = '/login.html';
-        return;
-      }
-
-      // Otro error del servidor → encolar y avisar
-      toast(`Error al enviar (${res.message}) — guardado localmente`);
-      Storage.addSurvey({ ...payload, status: 'pending' });
-      window.location.href = '/dashboard.html';
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      errEl.style.display  = 'block';
+      video.style.display  = 'none';
+      capBtn.style.display = 'none';
+      document.getElementById('cam-flip-btn').style.display = 'none';
       return;
     }
 
-    // Sin conexión: encolar como pending
-    Storage.addSurvey({ ...payload, status: 'pending' });
-    toast('Sin conexión — guardado localmente, se sincronizará al reconectarse');
-    window.location.href = '/dashboard.html';
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: camFacing, width: { ideal: 1280 }, height: { ideal: 960 } },
+        audio: false
+      });
+      video.srcObject = camStream;
+      errEl.style.display = 'none';
+    } catch (err) {
+      console.warn('[Camera]', err);
+      errEl.style.display  = 'block';
+      video.style.display  = 'none';
+      capBtn.style.display = 'none';
+      document.getElementById('cam-flip-btn').style.display = 'none';
+    }
   }
+
+  async function flipCamera() {
+    camFacing = camFacing === 'environment' ? 'user' : 'environment';
+    await startStream();
+  }
+
+  function capturePhoto() {
+    const video  = document.getElementById('cam-video');
+    const canvas = document.getElementById('cam-canvas');
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+    setPhotoPreview(dataUrl);
+    closeCamera();
+    toast('Photo captured!');
+  }
+
+  function closeCamera() {
+    if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+    document.getElementById('cam-modal').classList.remove('open');
+    document.getElementById('cam-video').srcObject = null;
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCamera(); });
+
+  function buildPayload() {
+    return {
+      id: 'local-' + Date.now(),
+      name: document.getElementById('f-name').value.trim(),
+      sector: document.getElementById('f-sector').value.trim(),
+      educationalLevel: document.getElementById('f-edu').value,
+      latitude: parseFloat(document.getElementById('f-lat').value) || null,
+      longitude: parseFloat(document.getElementById('f-lng').value) || null,
+      photoBase64: photoData,
+      userId: user.username,
+      username: user.username,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  function buildApiPayload() {
+    return {
+      name: document.getElementById('f-name').value.trim(),
+      sector: document.getElementById('f-sector').value.trim(),
+      educationalLevel: document.getElementById('f-edu').value,
+      latitude: parseFloat(document.getElementById('f-lat').value) || null,
+      longitude: parseFloat(document.getElementById('f-lng').value) || null,
+      photoBase64: photoData || null,
+    };
+  }
+
+  function applyFormData(form) {
+    document.getElementById('f-name').value = form.name || '';
+    document.getElementById('f-sector').value = form.sector || '';
+    document.getElementById('f-edu').value = form.educationalLevel || '';
+    document.getElementById('f-lat').value = form.latitude ?? '';
+    document.getElementById('f-lng').value = form.longitude ?? '';
+
+    if (form.photoBase64) {
+      photoData = form.photoBase64;
+      document.getElementById('photo-img').src = form.photoBase64;
+      document.getElementById('photo-preview').style.display = 'block';
+      document.getElementById('photo-upload-area').style.display = 'none';
+    }
+    updateProgress();
+  }
+
+  async function loadEditDataIfNeeded() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) return;
+
+    editingId = id;
+    editingRecord = await SurveyStorage.findSurvey(id);
+    document.getElementById('form-title').textContent = 'Edit Survey';
+    document.getElementById('submit-label').textContent = 'Update Survey';
+
+    if (editingRecord && editingRecord.status !== 'synced') {
+      applyFormData(editingRecord);
+      return;
+    }
+
+    if (!navigator.onLine) {
+      toast('No internet connection: cannot load survey for editing');
+      return;
+    }
+
+    const res = await API.surveys.getById(id);
+    if (!res.ok) {
+      if (res.status === 401) {
+        SurveyStorage.clearUser();
+        window.location.href = '/login.html';
+        return;
+      }
+      toast('Could not load survey: ' + res.message);
+      return;
+    }
+
+    applyFormData(res.data.form || {});
+  }
+
+  async function saveDraft() {
+    if (!document.getElementById('f-name').value.trim()) { toast('Enter at least a name to save a draft'); return; }
+
+    const payload = buildPayload();
+    if (editingRecord && editingRecord.status !== 'synced') {
+      await SurveyStorage.updateSurvey(editingId, {
+        ...payload,
+        id: editingId,
+        status: 'local',
+        createdAt: editingRecord.createdAt || payload.createdAt,
+        updatedAt: new Date().toISOString()
+      });
+    } else {
+      await SurveyStorage.addSurvey({ ...payload, status: 'local' });
+    }
+
+    document.getElementById('save-indicator').classList.add('visible');
+    toast('Draft saved to device');
+    goToDashboard();
+  }
+
+  async function submitForm() {
+    if (isSubmitting) return;
+
+    const name = document.getElementById('f-name').value.trim();
+    const sector = document.getElementById('f-sector').value.trim();
+    const edu = document.getElementById('f-edu').value;
+    if (!name || !sector || !edu) { toast('Por favor llena todos los campos requeridos'); return; }
+
+    isSubmitting = true;
+    setSubmitState(true);
+
+    try {
+      const payload = buildPayload();
+      const apiPayload = buildApiPayload();
+
+      if (editingId) {
+        if (editingRecord && editingRecord.status !== 'synced') {
+          if (navigator.onLine) {
+            const createRes = await API.surveys.create(apiPayload);
+            if (!createRes.ok) {
+              if (createRes.status === 401) {
+                SurveyStorage.clearUser();
+                window.location.href = '/login.html';
+                return;
+              }
+
+              await SurveyStorage.updateSurvey(editingId, {
+                ...payload,
+                id: editingId,
+                status: 'pending',
+                createdAt: editingRecord.createdAt || payload.createdAt,
+                updatedAt: new Date().toISOString()
+              });
+              toast(`Error publishing survey (${createRes.message}) — queued for sync`);
+              if (window.syncWorker) window.syncWorker.postMessage({ type: 'SYNC_NOW' });
+              goToDashboard();
+              return;
+            }
+
+            await SurveyStorage.updateSurvey(editingId, {
+              ...payload,
+              id: editingId,
+              status: 'synced',
+              serverId: createRes.data?.form?.id,
+              createdAt: editingRecord.createdAt || payload.createdAt,
+              updatedAt: new Date().toISOString()
+            });
+            toast('Survey published');
+            goToDashboard();
+            return;
+          }
+
+          await SurveyStorage.updateSurvey(editingId, {
+            ...payload,
+            id: editingId,
+            status: 'pending',
+            createdAt: editingRecord.createdAt || payload.createdAt,
+            updatedAt: new Date().toISOString()
+          });
+          toast('No connection: survey queued for sync');
+          if (window.syncWorker) window.syncWorker.postMessage({ type: 'SYNC_NOW' });
+          goToDashboard();
+          return;
+        }
+
+        if (!navigator.onLine) {
+          toast('No internet connection: cannot update right now');
+          return;
+        }
+
+        const updateRes = await API.surveys.update(editingId, apiPayload);
+        if (!updateRes.ok) {
+          if (updateRes.status === 401) {
+            SurveyStorage.clearUser();
+            window.location.href = '/login.html';
+            return;
+          }
+          toast(`Error updating survey (${updateRes.message})`);
+          return;
+        }
+
+        await SurveyStorage.upsertSurvey({
+          ...payload,
+          id: editingId,
+          serverId: editingId,
+          status: 'synced'
+        });
+        toast('Survey updated');
+        goToDashboard();
+        return;
+      }
+
+      if (navigator.onLine) {
+        const res = await API.surveys.create(apiPayload);
+
+        if (res.ok) {
+          const serverId = res.data?.form?.id;
+          await SurveyStorage.upsertSurvey({
+            ...payload,
+            id:       serverId || payload.id,
+            serverId: serverId,
+            status:   'synced'
+          });
+          toast('Encuesta enviada');
+          goToDashboard();
+          return;
+        }
+
+        if (res.status === 401) {
+          SurveyStorage.clearUser();
+          window.location.href = '/login.html';
+          return;
+        }
+
+        toast(`Error al enviar (${res.message}) — guardado localmente`);
+        await SurveyStorage.addSurvey({ ...payload, status: 'pending' });
+        if (window.syncWorker) window.syncWorker.postMessage({ type: 'SYNC_NOW' });
+        goToDashboard();
+        return;
+      }
+
+      await SurveyStorage.addSurvey({ ...payload, status: 'pending' });
+      toast('Sin conexion — guardado localmente, se sincronizara al reconectarse');
+      if (window.syncWorker) window.syncWorker.postMessage({ type: 'SYNC_NOW' });
+      goToDashboard();
+    } catch (err) {
+      console.error('[submitForm] Error inesperado', err);
+      try {
+        const payload = buildPayload();
+        await SurveyStorage.addSurvey({ ...payload, status: 'pending' });
+        if (window.syncWorker) window.syncWorker.postMessage({ type: 'SYNC_NOW' });
+      } catch (_) {}
+      toast('Ocurrio un error, pero se guardo localmente');
+      goToDashboard();
+    } finally {
+      setTimeout(() => {
+        isSubmitting = false;
+        setSubmitState(false);
+      }, 500);
+    }
+  }
+
+  loadEditDataIfNeeded();
+  updateProgress();
 </script>
 </body>
 </html>

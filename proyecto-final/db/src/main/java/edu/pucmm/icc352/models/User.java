@@ -4,9 +4,6 @@ import org.bson.types.ObjectId;
 
 import java.time.LocalDateTime;
 
-/**
- * User model for authentication and authorization
- */
 public class User {
     private ObjectId id;
     private String username;
@@ -15,7 +12,6 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Default constructor required for MongoDB POJO mapping
     public User() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -28,7 +24,6 @@ public class User {
         this.role = role;
     }
 
-    // Getters and Setters
     public ObjectId getId() {
         return id;
     }

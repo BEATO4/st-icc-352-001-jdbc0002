@@ -3,11 +3,15 @@ package edu.pucmm.icc352.backend;
 import edu.pucmm.icc352.backend.controllers.AuthController;
 import edu.pucmm.icc352.backend.controllers.SurveyFormController;
 import edu.pucmm.icc352.backend.middleware.JwtAuthFilter;
+import edu.pucmm.icc352.backend.grpc.EncuestaServiceImpl;
+import edu.pucmm.icc352.backend.services.SurveyFormService;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import io.javalin.json.JavalinJackson;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,100 +20,95 @@ import java.util.Map;
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
     private static final int PORT = 8080;
+    private static final int GRPC_PORT = 9090;
+    private static Server grpcServer;
 
     public static void main(String[] args) {
-        // ── Controllers ───────────────────────────────────────────────────────
-        AuthController       authController   = new AuthController();
-        SurveyFormController surveyController = new SurveyFormController();
-        JwtAuthFilter        jwtFilter        = new JwtAuthFilter();
+        SurveyFormService surveyFormService = new SurveyFormService();
 
-        // ── Javalin 7: everything declared upfront inside create() ────────────
-        // Drop the `app` variable — nothing calls app.stop() here, so the
-        // assignment would produce an "unused variable" warning.
-        Javalin.create(config -> {
+        AuthController authController = new AuthController();
+        SurveyFormController surveyController = new SurveyFormController(surveyFormService);
+        JwtAuthFilter jwtFilter = new JwtAuthFilter();
+
+        Javalin app = Javalin.create(config -> {
 
             config.jetty.port = PORT;
 
-            // JavalinJackson has no single-arg ObjectMapper constructor in v7.
-            // Use updateMapper() to configure the built-in Jackson instance.
             config.jsonMapper(new JavalinJackson().updateMapper(mapper -> {
                 mapper.registerModule(new JavaTimeModule());
                 mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
             }));
 
-            // CORS for local development / mobile clients
-            config.bundledPlugins.enableCors(cors ->
-                    cors.addRule(rule -> {
-                        rule.anyHost();
-                        rule.allowCredentials = false;
-                    })
-            );
+            config.bundledPlugins.enableCors(cors -> cors.addRule(rule -> {
+                rule.anyHost();
+                rule.allowCredentials = false;
+            }));
 
             config.bundledPlugins.enableRouteOverview("/api/routes");
 
-            // Serve frontend — explicit form avoids any ambiguity about directory vs hostedPath
             config.staticFiles.add(staticFiles -> {
                 staticFiles.hostedPath = "/";
-                staticFiles.directory  = "/public";
-                staticFiles.location   = Location.CLASSPATH;
+                staticFiles.directory = "/public";
+                staticFiles.location = Location.CLASSPATH;
             });
 
-            // ── Routes ────────────────────────────────────────────────────────
-            // In Javalin 7 routes are registered directly on config.routes —
-            // no wrapping lambda needed when using the config.routes.verb() style.
-
-            // Public auth endpoints (no JWT required)
             config.routes.post("/api/auth/register", authController::register);
-            config.routes.post("/api/auth/login",    authController::login);
-            config.routes.get ("/api/auth/validate", authController::validateToken);
+            config.routes.post("/api/auth/login", authController::login);
+            config.routes.get("/api/auth/validate", authController::validateToken);
 
-            // Protected auth endpoint
             config.routes.get("/api/auth/me", ctx -> {
                 jwtFilter.handle(ctx);
-                if (ctx.status().getCode() == 401) return;
+                if (ctx.status().getCode() == 401)
+                    return;
                 authController.getCurrentUser(ctx);
             });
 
-            // Survey forms – specific paths must come before parameterised ones
             config.routes.get("/api/surveys/location", ctx -> {
                 jwtFilter.handle(ctx);
-                if (ctx.status().getCode() == 401) return;
+                if (ctx.status().getCode() == 401)
+                    return;
                 surveyController.getWithLocation(ctx);
             });
 
             config.routes.get("/api/surveys/user/{userId}", ctx -> {
                 jwtFilter.handle(ctx);
-                if (ctx.status().getCode() == 401) return;
+                if (ctx.status().getCode() == 401)
+                    return;
                 surveyController.getByUserId(ctx);
             });
 
             config.routes.post("/api/surveys", ctx -> {
                 jwtFilter.handle(ctx);
-                if (ctx.status().getCode() == 401) return;
+                if (ctx.status().getCode() == 401)
+                    return;
                 surveyController.create(ctx);
             });
 
             config.routes.get("/api/surveys", ctx -> {
                 jwtFilter.handle(ctx);
-                if (ctx.status().getCode() == 401) return;
+                if (ctx.status().getCode() == 401)
+                    return;
                 surveyController.getAll(ctx);
             });
 
             config.routes.get("/api/surveys/{id}", ctx -> {
                 jwtFilter.handle(ctx);
-                if (ctx.status().getCode() == 401) return;
+                if (ctx.status().getCode() == 401)
+                    return;
                 surveyController.getById(ctx);
             });
 
             config.routes.put("/api/surveys/{id}", ctx -> {
                 jwtFilter.handle(ctx);
-                if (ctx.status().getCode() == 401) return;
+                if (ctx.status().getCode() == 401)
+                    return;
                 surveyController.update(ctx);
             });
 
             config.routes.delete("/api/surveys/{id}", ctx -> {
                 jwtFilter.handle(ctx);
-                if (ctx.status().getCode() == 401) return;
+                if (ctx.status().getCode() == 401)
+                    return;
                 surveyController.delete(ctx);
             });
 
@@ -118,21 +117,84 @@ public class Main {
                 logger.error("Unhandled exception", e);
                 ctx.status(500).json(Map.of(
                         "success", false,
-                        "message", "Internal server error"
-                ));
+                        "message", "Internal server error"));
             });
 
-            config.routes.error(404, ctx ->
-                    ctx.json(Map.of("success", false, "message", "Endpoint not found"))
-            );
+            config.routes.error(404, ctx -> ctx.json(Map.of("success", false, "message", "Endpoint not found")));
 
-            config.routes.error(405, ctx ->
-                    ctx.json(Map.of("success", false, "message", "Method not allowed"))
-            );
+            config.routes.error(405, ctx -> ctx.json(Map.of("success", false, "message", "Method not allowed")));
+
+            config.routes.ws("/sync", ws -> {
+                ws.onConnect(ctx -> logger.info("WebSocket Worker conectado: {}", ctx.sessionId()));
+                ws.onMessage(ctx -> {
+                    try {
+                        com.fasterxml.jackson.databind.JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(ctx.message());
+                        
+                        edu.pucmm.icc352.models.SurveyForm form = new edu.pucmm.icc352.models.SurveyForm(
+                                jsonNode.hasNonNull("name") ? jsonNode.get("name").asText(null) : null,
+                                jsonNode.hasNonNull("sector") ? jsonNode.get("sector").asText(null) : null,
+                                jsonNode.hasNonNull("educationalLevel") ? jsonNode.get("educationalLevel").asText(null) : null,
+                                jsonNode.hasNonNull("latitude") ? jsonNode.get("latitude").asDouble() : null,
+                                jsonNode.hasNonNull("longitude") ? jsonNode.get("longitude").asDouble() : null,
+                                jsonNode.hasNonNull("photoBase64") ? jsonNode.get("photoBase64").asText(null) : null,
+                                jsonNode.hasNonNull("username") ? jsonNode.get("username").asText() : "OfflineUser",
+                                jsonNode.hasNonNull("username") ? jsonNode.get("username").asText() : "OfflineUser"
+                        );
+                        
+                        String localId = jsonNode.hasNonNull("id") ? jsonNode.get("id").asText(null) : null;
+                        edu.pucmm.icc352.models.SurveyForm created = surveyFormService.createForm(form);
+
+                        if (created != null && localId != null) {
+                            ctx.send(Map.of(
+                                    "status", "success",
+                                    "id", localId
+                            ));
+                            logger.info("Registro {} sincronizado vía WebSocket", localId);
+                        }
+                    } catch (Exception e) {
+                        logger.error("Error procesando WebSocket sync", e);
+                        ctx.send(Map.of("status", "error", "message", e.getMessage()));
+                    }
+                });
+                ws.onClose(ctx -> logger.info("WebSocket Worker desconectado: {}", ctx.sessionId()));
+                ws.onError(ctx -> logger.error("Error en WebSocket", ctx.error()));
+            });
 
         }).start();
 
         logger.info("Server started on port {}", PORT);
         logger.info("Route overview available at http://localhost:{}/api/routes", PORT);
+
+        startGrpcServer(surveyFormService);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            logger.info("Shutting down gRPC server...");
+            if (grpcServer != null) {
+                grpcServer.shutdown();
+                try {
+                    grpcServer.awaitTermination();
+                } catch (InterruptedException e) {
+                    logger.error("Error during gRPC shutdown", e);
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }));
+    }
+
+    private static void startGrpcServer(SurveyFormService surveyFormService) {
+        new Thread(() -> {
+            try {
+                grpcServer = ServerBuilder
+                        .forPort(GRPC_PORT)
+                        .addService(new EncuestaServiceImpl(surveyFormService))
+                        .build()
+                        .start();
+
+                logger.info("gRPC Server started on port {}", GRPC_PORT);
+                grpcServer.awaitTermination();
+            } catch (Exception e) {
+                logger.error("Error starting gRPC server", e);
+            }
+        }).start();
     }
 }

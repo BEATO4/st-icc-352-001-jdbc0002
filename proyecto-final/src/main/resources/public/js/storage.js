@@ -1,13 +1,6 @@
-/**
- * storage.js — Offline queue and local persistence
- * Wraps localStorage so the rest of the app never touches it directly.
- */
-
-const Storage = (() => {
-  const SURVEYS_KEY = 'fieldform_surveys';
+const SurveyStorage = (() => {
   const USER_KEY    = 'fieldform_user';
 
-  /* ── USER SESSION ──────────────────────── */
   function saveUser(user) {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
   }
@@ -19,49 +12,105 @@ const Storage = (() => {
     localStorage.removeItem(USER_KEY);
   }
 
-  /* ── SURVEYS ───────────────────────────── */
-  function loadSurveys() {
-    const raw = localStorage.getItem(SURVEYS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  }
-  function saveSurveys(surveys) {
-    localStorage.setItem(SURVEYS_KEY, JSON.stringify(surveys));
+  const DB_NAME = 'FormularioDB';
+  const DB_VERSION = 1;
+  const STORE_NAME = 'formularios';
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        }
+      };
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = (event) => reject(event.target.error);
+    });
   }
 
-  /** Add a new survey record to the front of the list. */
-  function addSurvey(record) {
-    const surveys = loadSurveys();
-    surveys.unshift(record);
-    saveSurveys(surveys);
-    return record;
+  async function loadSurveys() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const sorted = request.result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        resolve(sorted);
+      };
+      request.onerror = () => reject(request.error);
+    });
   }
 
-  /** Update an existing record by its local id. */
-  function updateSurvey(id, patch) {
-    const surveys = loadSurveys().map(s =>
-        s.id === id ? { ...s, ...patch } : s
-    );
-    saveSurveys(surveys);
+  async function addSurvey(survey) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.add(survey);
+      request.onsuccess = () => resolve(survey);
+      request.onerror = () => reject(request.error);
+    });
   }
 
-  /** Delete a record by its local id. */
-  function deleteSurvey(id) {
-    const surveys = loadSurveys().filter(s => s.id !== id);
-    saveSurveys(surveys);
+  async function upsertSurvey(survey) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.put(survey);
+      request.onsuccess = () => resolve(survey);
+      request.onerror = () => reject(request.error);
+    });
   }
 
-  /** Mark all 'pending' records as 'synced'. Called after a successful API sync. */
-  function markAllSynced() {
-    const surveys = loadSurveys().map(s =>
-        s.status === 'pending' ? { ...s, status: 'synced' } : s
-    );
-    saveSurveys(surveys);
+  async function updateSurvey(id, patch) {
+    const current = await findSurvey(id);
+    if (!current) return;
+    const updated = { ...current, ...patch };
+    return upsertSurvey(updated);
   }
 
-  /** Returns only the records that still need to be sent to the server. */
-  function getPendingQueue() {
-    return loadSurveys().filter(s => s.status === 'pending');
+  async function findSurvey(id) {
+    const surveys = await loadSurveys();
+    return surveys.find(s => s.id === id || s.serverId === id) || null;
   }
 
-  return { saveUser, loadUser, clearUser, loadSurveys, addSurvey, updateSurvey, deleteSurvey, markAllSynced, getPendingQueue };
+  async function removeSurvey(id) {
+    const db      = await openDB();
+    const all     = await loadSurveys();
+    const toDelete = all.filter(s => s.id === id || s.serverId === id);
+    if (!toDelete.length) return;
+
+    return Promise.all(toDelete.map(survey =>
+      new Promise((resolve, reject) => {
+        const tx      = db.transaction(STORE_NAME, 'readwrite');
+        const store   = tx.objectStore(STORE_NAME);
+        const request = store.delete(survey.id);
+        request.onsuccess = () => resolve();
+        request.onerror   = () => reject(request.error);
+      })
+    ));
+  }
+
+
+  async function getPendingQueue() {
+    const surveys = await loadSurveys();
+    return surveys.filter(s => s.status === 'pending');
+  }
+
+  return {
+    saveUser,
+    loadUser,
+    clearUser,
+    loadSurveys,
+    addSurvey,
+    upsertSurvey,
+    updateSurvey,
+    findSurvey,
+    removeSurvey,
+    getPendingQueue
+  };
 })();

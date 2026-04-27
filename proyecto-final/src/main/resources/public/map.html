@@ -1,25 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FieldForm — Survey Map</title>
 
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <link rel="stylesheet" href="/css/style.css">
 
   <style>
-    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
 
-    /* ── Page layout ─────────────────────────────── */
+
     .map-layout {
       display: flex;
       flex: 1;
       overflow: hidden;
     }
 
-    /* ── Sidebar ─────────────────────────────────── */
     .map-sidebar {
       width: 320px;
       flex-shrink: 0;
@@ -35,23 +39,25 @@
       border-bottom: 1px solid var(--border);
       background: var(--white);
     }
+
     .sidebar-title {
       font-family: 'Fraunces', serif;
       font-size: 18px;
       font-weight: 500;
       margin-bottom: 2px;
     }
+
     .sidebar-subtitle {
       font-size: 12px;
       color: var(--ink-ghost);
     }
 
-    /* Source toggle */
     .source-toggle {
       display: flex;
       gap: 6px;
       margin-top: 10px;
     }
+
     .toggle-btn {
       flex: 1;
       padding: 6px 10px;
@@ -65,18 +71,19 @@
       cursor: pointer;
       transition: all var(--transition);
     }
+
     .toggle-btn.active {
       background: var(--clay);
       border-color: var(--clay);
       color: var(--white);
     }
 
-    /* Search */
     .sidebar-search {
       padding: 10px 14px;
       border-bottom: 1px solid var(--border);
       background: var(--white);
     }
+
     .sidebar-search input {
       width: 100%;
       padding: 8px 12px;
@@ -88,9 +95,11 @@
       color: var(--ink);
       outline: none;
     }
-    .sidebar-search input:focus { border-color: var(--clay); }
 
-    /* List */
+    .sidebar-search input:focus {
+      border-color: var(--clay);
+    }
+
     .sidebar-list {
       flex: 1;
       overflow-y: auto;
@@ -106,361 +115,502 @@
       margin-bottom: 4px;
       background: var(--white);
     }
-    .sidebar-item:hover { border-color: rgba(196,98,45,0.25); background: #fff; box-shadow: var(--shadow-sm); }
-    .sidebar-item.active { border-color: var(--clay); background: var(--clay-pale); }
 
-    .item-row { display: flex; align-items: center; gap: 10px; }
-    .item-avatar {
-      width: 34px; height: 34px; border-radius: var(--radius-sm);
-      background: var(--clay-pale); display: flex; align-items: center;
-      justify-content: center; font-family: 'Fraunces', serif;
-      font-size: 13px; font-weight: 700; color: var(--clay);
-      flex-shrink: 0; text-transform: uppercase;
+    .sidebar-item:hover {
+      border-color: rgba(196, 98, 45, 0.25);
+      background: #fff;
+      box-shadow: var(--shadow-sm);
     }
-    .item-avatar.no-geo { background: var(--parch-2); color: var(--ink-ghost); }
-    .item-body { flex: 1; min-width: 0; }
-    .item-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .item-meta { font-size: 11px; color: var(--ink-ghost); margin-top: 2px; }
+
+    .sidebar-item.active {
+      border-color: var(--clay);
+      background: var(--clay-pale);
+    }
+
+    .item-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .item-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      background: var(--clay-pale);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fraunces', serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--clay);
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+
+    .item-avatar.no-geo {
+      background: var(--parch-2);
+      color: var(--ink-ghost);
+    }
+
+    .item-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .item-name {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .item-meta {
+      font-size: 11px;
+      color: var(--ink-ghost);
+      margin-top: 2px;
+    }
+
     .item-no-geo {
-      font-size: 10px; color: var(--amber); background: var(--amber-pale);
-      padding: 2px 6px; border-radius: 99px; margin-top: 4px; display: inline-block;
+      font-size: 10px;
+      color: var(--amber);
+      background: var(--amber-pale);
+      padding: 2px 6px;
+      border-radius: 99px;
+      margin-top: 4px;
+      display: inline-block;
     }
 
     .sidebar-empty {
-      text-align: center; padding: 40px 16px;
-      color: var(--ink-ghost); font-size: 13px;
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--ink-ghost);
+      font-size: 13px;
     }
-    .sidebar-empty-icon { font-size: 30px; margin-bottom: 8px; opacity: 0.4; }
 
-    /* Count badge */
+    .sidebar-empty-icon {
+      font-size: 30px;
+      margin-bottom: 8px;
+      opacity: 0.4;
+    }
+
     .count-badge {
-      display: inline-flex; align-items: center; justify-content: center;
-      background: var(--clay-pale); color: var(--clay);
-      font-size: 11px; font-weight: 600;
-      padding: 2px 7px; border-radius: 99px; margin-left: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--clay-pale);
+      color: var(--clay);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 99px;
+      margin-left: 6px;
     }
 
-    /* ── Map container ───────────────────────────── */
     #map {
       position: absolute;
       inset: 0;
       z-index: 1;
     }
 
-    /* ── Leaflet popup override ───────────────────── */
     .leaflet-popup-content-wrapper {
       border-radius: var(--radius-lg) !important;
       box-shadow: var(--shadow-md) !important;
       font-family: 'Syne', sans-serif !important;
       border: 1px solid var(--border);
     }
-    .leaflet-popup-content { margin: 14px 16px !important; min-width: 200px; }
-    .popup-name { font-size: 15px; font-weight: 500; color: var(--ink); margin-bottom: 2px; }
-    .popup-sector { font-size: 12px; color: var(--ink-ghost); margin-bottom: 8px; }
-    .popup-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
-    .popup-label { color: var(--ink-ghost); }
-    .popup-value { font-weight: 500; color: var(--ink-soft); }
-    .popup-photo { width: 100%; border-radius: var(--radius-md); margin-top: 10px; display: block; max-height: 120px; object-fit: cover; }
-    .popup-no-photo { background: var(--parch-2); border-radius: var(--radius-md); height: 60px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--ink-ghost); margin-top: 10px; }
 
-    /* ── Loading overlay ─────────────────────────── */
-    .map-loading {
-      position: absolute; inset: 0; background: var(--parch);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 500; gap: 12px;
+    .leaflet-popup-content {
+      margin: 14px 16px !important;
+      min-width: 200px;
     }
-    .map-loading.hidden { display: none; }
+
+    .popup-name {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--ink);
+      margin-bottom: 2px;
+    }
+
+    .popup-sector {
+      font-size: 12px;
+      color: var(--ink-ghost);
+      margin-bottom: 8px;
+    }
+
+    .popup-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+
+    .popup-label {
+      color: var(--ink-ghost);
+    }
+
+    .popup-value {
+      font-weight: 500;
+      color: var(--ink-soft);
+    }
+
+    .popup-photo {
+      width: 100%;
+      border-radius: var(--radius-md);
+      margin-top: 10px;
+      display: block;
+      max-height: 120px;
+      object-fit: cover;
+    }
+
+    .popup-no-photo {
+      background: var(--parch-2);
+      border-radius: var(--radius-md);
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--ink-ghost);
+      margin-top: 10px;
+    }
+
+    .map-loading {
+      position: absolute;
+      inset: 0;
+      background: var(--parch);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+      gap: 12px;
+    }
+
+    .map-loading.hidden {
+      display: none;
+    }
+
     .spinner {
-      width: 32px; height: 32px; border: 3px solid var(--parch-2);
-      border-top-color: var(--clay); border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--parch-2);
+      border-top-color: var(--clay);
+      border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Stats bar ───────────────────────────────── */
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
     .stats-bar {
-      display: flex; gap: 0;
+      display: flex;
+      gap: 0;
       background: var(--white);
       border-bottom: 1px solid var(--border);
       overflow-x: auto;
     }
-    .stat-pill {
-      padding: 10px 18px; font-size: 12px; color: var(--ink-ghost);
-      border-right: 1px solid var(--border); white-space: nowrap;
-    }
-    .stat-pill strong { color: var(--ink); font-weight: 600; }
 
-    /* ── Mobile ──────────────────────────────────── */
+    .stat-pill {
+      padding: 10px 18px;
+      font-size: 12px;
+      color: var(--ink-ghost);
+      border-right: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .stat-pill strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
     @media (max-width: 640px) {
-      .map-layout { flex-direction: column-reverse; }
-      .map-sidebar { width: 100%; height: 45vh; border-right: none; border-top: 1px solid var(--border); }
-      .map-layout > div:last-child { min-height: 55vw; }
+      .map-layout {
+        flex-direction: column-reverse;
+      }
+
+      .map-sidebar {
+        width: 100%;
+        height: 45vh;
+        border-right: none;
+        border-top: 1px solid var(--border);
+      }
+
+      .map-layout>div:last-child {
+        min-height: 55vw;
+      }
     }
   </style>
 </head>
+
 <body>
 
-<!-- Top bar -->
-<div class="top-bar">
-  <div class="top-bar-brand" onclick="window.location.href='/dashboard.html'">
-    <div class="top-bar-brand-icon">
-      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+  <div class="top-bar">
+    <div class="top-bar-brand" onclick="window.location.href='/dashboard.html'">
+      <div class="top-bar-brand-icon">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+        </svg>
+      </div>
+      <span class="top-bar-brand-name">FieldForm</span>
     </div>
-    <span class="top-bar-brand-name">FieldForm</span>
-  </div>
-  <div class="top-bar-right">
-    <div class="sync-pill" id="sync-pill"><div class="sync-dot"></div><span id="sync-text">Online</span></div>
-    <div class="avatar-btn" id="avatar-btn">–</div>
-    <div class="user-menu" id="user-menu">
-      <div class="user-menu-header">
-        <div class="user-menu-name" id="menu-name">–</div>
-        <div class="user-menu-role" id="menu-role">–</div>
+    <div class="top-bar-right">
+      <div class="sync-pill" id="sync-pill">
+        <div class="sync-dot"></div><span id="sync-text">Online</span>
       </div>
-      <div class="user-menu-item" onclick="window.location.href='/dashboard.html'">
-        <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-        Dashboard
-      </div>
-      <div class="user-menu-item" onclick="window.location.href='/form.html'">
-        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-        New Survey
-      </div>
-      <div class="user-menu-item danger" onclick="logout()">
-        <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
-        Sign Out
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Stats bar -->
-<div class="stats-bar" id="stats-bar">
-  <div class="stat-pill">Total <strong id="s-total">—</strong></div>
-  <div class="stat-pill">Con ubicación <strong id="s-geo">—</strong></div>
-  <div class="stat-pill">Sin ubicación <strong id="s-nogeo">—</strong></div>
-  <div class="stat-pill">Sectores <strong id="s-sectors">—</strong></div>
-</div>
-
-<!-- Main layout -->
-<div class="map-layout">
-
-  <!-- Sidebar -->
-  <div class="map-sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-title">
-        Registros
-        <span class="count-badge" id="list-count">0</span>
-      </div>
-      <div class="sidebar-subtitle">Haz clic en un registro para centrarlo en el mapa</div>
-
-      <div class="source-toggle">
-        <button class="toggle-btn active" id="btn-server" onclick="setSource('server')">Servidor</button>
-        <button class="toggle-btn" id="btn-local"  onclick="setSource('local')">Local</button>
-      </div>
-    </div>
-
-    <div class="sidebar-search">
-      <input type="text" id="search-input" placeholder="Buscar por nombre o sector…" oninput="filterList()">
-    </div>
-
-    <div class="sidebar-list" id="sidebar-list">
-      <div class="sidebar-empty">
-        <div class="sidebar-empty-icon">📍</div>
-        Cargando registros…
+      <div class="avatar-btn" id="avatar-btn">–</div>
+      <div class="user-menu" id="user-menu">
+        <div class="user-menu-header">
+          <div class="user-menu-name" id="menu-name">–</div>
+          <div class="user-menu-role" id="menu-role">–</div>
+        </div>
+        <div class="user-menu-item" onclick="window.location.href='/dashboard.html'">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+          </svg>
+          Dashboard
+        </div>
+        <div class="user-menu-item" onclick="window.location.href='/form.html'">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+          </svg>
+          New Survey
+        </div>
+        <div class="user-menu-item danger" onclick="logout()">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+          </svg>
+          Sign Out
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Map -->
-  <div style="flex:1; position:relative; min-height:0;">
-    <div id="map"></div>
-    <div class="map-loading" id="map-loading">
-      <div class="spinner"></div>
-      <span style="font-size:13px; color:var(--ink-ghost);">Cargando mapa…</span>
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat-pill">Total <strong id="s-total">—</strong></div>
+    <div class="stat-pill">Con ubicación <strong id="s-geo">—</strong></div>
+    <div class="stat-pill">Sin ubicación <strong id="s-nogeo">—</strong></div>
+    <div class="stat-pill">Sectores <strong id="s-sectors">—</strong></div>
+  </div>
+
+  <div class="map-layout">
+
+    <div class="map-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">
+          Registros
+          <span class="count-badge" id="list-count">0</span>
+        </div>
+        <div class="sidebar-subtitle">Haz clic en un registro para centrarlo en el mapa</div>
+
+        <div class="source-toggle">
+          <button class="toggle-btn active" id="btn-server" onclick="setSource('server')">Servidor</button>
+          <button class="toggle-btn" id="btn-local" onclick="setSource('local')">Local</button>
+        </div>
+      </div>
+
+      <div class="sidebar-search">
+        <input type="text" id="search-input" placeholder="Buscar por nombre o sector…" oninput="filterList()">
+      </div>
+
+      <div class="sidebar-list" id="sidebar-list">
+        <div class="sidebar-empty">
+          <div class="sidebar-empty-icon">—</div>
+          Cargando registros…
+        </div>
+      </div>
+    </div>
+
+    <!-- Map -->
+    <div style="flex:1; position:relative; min-height:0;">
+      <div id="map"></div>
+      <div class="map-loading" id="map-loading">
+        <div class="spinner"></div>
+        <span style="font-size:13px; color:var(--ink-ghost);">Cargando mapa…</span>
+      </div>
     </div>
   </div>
-</div>
 
-<div id="toast"></div>
+  <div id="toast"></div>
 
-<!-- Leaflet JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="/js/storage.js"></script>
-<script src="/js/api.js"></script>
-<script src="/js/app.js"></script>
-<script>
-  const user = requireAuth();
-  initUserMenu();
-  initSyncPill();
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="/js/storage.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    const user = requireAuth();
+    initUserMenu();
+    initSyncPill();
 
-  const EDU = {
-    PRIMARY:           'Básico',
-    SECONDARY:         'Medio',
-    UNIVERSITY_DEGREE: 'Grado Universitario',
-    POSTGRADUATE:      'Postgrado',
-    DOCTORAL:          'Doctorado'
-  };
+    const EDU = {
+      BASICO: 'Básico',
+      MEDIO: 'Medio',
+      GRADO_UNIVERSITARIO: 'Grado Universitario',
+      POSTGRADO: 'Postgrado',
+      DOCTORADO: 'Doctorado'
+    };
 
-  /* ── State ────────────────────────────────────── */
-  let allRecords   = [];   // full dataset (server or local)
-  let filtered     = [];   // after search filter
-  let markers      = [];   // Leaflet markers
-  let activeIdx    = -1;
-  let dataSource   = 'server';
-  let map, markerGroup;
+    let allRecords = [];
+    let filtered = [];
+    let markers = [];
+    let activeIdx = -1;
+    let dataSource = 'server';
+    let map, markerGroup;
 
-  /* ── Init map ─────────────────────────────────── */
-  function initMap() {
-    map = L.map('map', { zoomControl: true });
+    function initMap() {
+      map = L.map('map', { zoomControl: true });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19
-    }).addTo(map);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      }).addTo(map);
 
-    markerGroup = L.featureGroup().addTo(map);
-    document.getElementById('map-loading').classList.add('hidden');
-  }
+      markerGroup = L.featureGroup().addTo(map);
+      document.getElementById('map-loading').classList.add('hidden');
+    }
 
-  /* ── Custom marker icon ───────────────────────── */
-  function makeIcon(color) {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36">
+    function makeIcon(color) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36">
       <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 24 12 24s12-15 12-24C24 5.37 18.63 0 12 0z" fill="${color}"/>
       <circle cx="12" cy="12" r="5" fill="white"/>
     </svg>`;
-    return L.divIcon({
-      html: svg,
-      className: '',
-      iconSize: [24, 36],
-      iconAnchor: [12, 36],
-      popupAnchor: [0, -38]
-    });
-  }
-
-  const iconDefault  = makeIcon('#C4622D');
-  const iconActive   = makeIcon('#14213D');
-  const iconNoGeo    = null; // not placed on map
-
-  /* ── Load data ────────────────────────────────── */
-  async function loadServer() {
-    if (!navigator.onLine) {
-      toast('Sin conexión — mostrando datos locales');
-      setSource('local');
-      return;
+      return L.divIcon({
+        html: svg,
+        className: '',
+        iconSize: [24, 36],
+        iconAnchor: [12, 36],
+        popupAnchor: [0, -38]
+      });
     }
-    const res = await API.surveys.getAll();
-    if (!res.ok) {
-      if (res.status === 401) {
-        Storage.clearUser();
-        window.location.href = '/login.html';
+
+    const iconDefault = makeIcon('#C4622D');
+    const iconActive = makeIcon('#14213D');
+    const iconNoGeo = null;
+
+    async function loadServer() {
+      if (!navigator.onLine) {
+        document.getElementById('btn-server').classList.remove('active');
+        document.getElementById('btn-local').classList.add('active');
+        dataSource = 'local';
+        await loadLocal();
         return;
       }
-      toast('Error al cargar del servidor — mostrando datos locales');
-      setSource('local');
-      return;
+      const res = await API.surveys.getAll();
+      if (!res.ok) {
+        if (res.status === 401) {
+          SurveyStorage.clearUser();
+          window.location.href = '/login.html';
+          return;
+        }
+        toast('Error al cargar del servidor — mostrando datos locales');
+        await loadLocal();
+        return;
+      }
+      const seen = new Set();
+      allRecords = (res.data.forms || []).filter(r => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+      });
+      renderAll();
     }
-    // Deduplicar por ID en caso de registros repetidos en MongoDB
-    const seen = new Set();
-    allRecords = (res.data.forms || []).filter(r => {
-      if (seen.has(r.id)) return false;
-      seen.add(r.id);
-      return true;
-    });
-    renderAll();
-  }
 
-  function loadLocal() {
-    allRecords = Storage.loadSurveys()
-            // En modo local solo mostrar pendientes/drafts; los synced ya están en servidor
-            .filter(s => s.status !== 'synced')
-            .map(s => ({
-              id:               s.id,
-              name:             s.name,
-              sector:           s.sector,
-              educationalLevel: s.educationalLevel,
-              latitude:         s.latitude  || null,
-              longitude:        s.longitude || null,
-              hasPhoto:         !!(s.photoBase64),
-              photoBase64:      s.photoBase64 || null,
-              username:         s.username || user.username,
-              createdAt:        s.createdAt,
-              status:           s.status
-            }));
-    renderAll();
-  }
-
-  function setSource(src) {
-    dataSource = src;
-    document.getElementById('btn-server').classList.toggle('active', src === 'server');
-    document.getElementById('btn-local').classList.toggle('active',  src === 'local');
-    document.getElementById('search-input').value = '';
-    if (src === 'server') loadServer();
-    else loadLocal();
-  }
-
-  /* ── Render markers + list ────────────────────── */
-  function renderAll() {
-    filtered = applyFilter(allRecords);
-    updateStats();
-    renderMarkers();
-    renderList();
-  }
-
-  function applyFilter(records) {
-    const q = document.getElementById('search-input').value.trim().toLowerCase();
-    if (!q) return records;
-    return records.filter(r =>
-            (r.name   || '').toLowerCase().includes(q) ||
-            (r.sector || '').toLowerCase().includes(q)
-    );
-  }
-
-  function filterList() {
-    filtered = applyFilter(allRecords);
-    renderMarkers();
-    renderList();
-  }
-
-  function updateStats() {
-    const withGeo = allRecords.filter(r => r.latitude && r.longitude);
-    const sectors = new Set(allRecords.map(r => r.sector).filter(Boolean));
-    document.getElementById('s-total').textContent   = allRecords.length;
-    document.getElementById('s-geo').textContent     = withGeo.length;
-    document.getElementById('s-nogeo').textContent   = allRecords.length - withGeo.length;
-    document.getElementById('s-sectors').textContent = sectors.size;
-  }
-
-  /* ── Markers ──────────────────────────────────── */
-  function renderMarkers() {
-    markerGroup.clearLayers();
-    markers = [];
-
-    const geoRecords = filtered.filter(r => r.latitude && r.longitude);
-
-    geoRecords.forEach((r, i) => {
-      const marker = L.marker([r.latitude, r.longitude], { icon: iconDefault })
-              .bindPopup(buildPopupSkeleton(r), { maxWidth: 260 });
-
-      marker.on('click', () => activateItem(i));
-      marker.on('popupopen', () => loadPopupPhoto(r, marker));
-      markerGroup.addLayer(marker);
-      markers.push(marker);
-    });
-
-    if (geoRecords.length > 0) {
-      try { map.fitBounds(markerGroup.getBounds().pad(0.25)); } catch(e) {}
-    } else {
-      map.setView([18.7357, -70.1627], 8);
+    async function loadLocal() {
+      const rawLocalSurveys = await SurveyStorage.loadSurveys();
+      allRecords = rawLocalSurveys.map(s => ({
+        id: s.serverId || s.id,
+        name: s.name,
+        sector: s.sector,
+        educationalLevel: s.educationalLevel,
+        latitude: s.latitude || null,
+        longitude: s.longitude || null,
+        hasPhoto: !!(s.photoBase64),
+        photoBase64: s.photoBase64 || null,
+        username: s.username || user.username,
+        createdAt: s.createdAt,
+        status: s.status
+      }));
+      renderAll();
     }
-  }
 
-  /** Popup sin foto — se muestra de inmediato */
-  function buildPopupSkeleton(r) {
-    const edu  = EDU[r.educationalLevel] || r.educationalLevel || '—';
-    const date = r.createdAt ? new Date(r.createdAt).toLocaleDateString('es', { day:'numeric', month:'short', year:'numeric' }) : '—';
-    const photoSlot = r.hasPhoto
-            ? `<div class="popup-no-photo" id="photo-slot-${escAttr(r.id)}">Cargando foto…</div>`
-            : `<div class="popup-no-photo">Sin foto</div>`;
-    return `
+    async function setSource(src) {
+      dataSource = src;
+      document.getElementById('btn-server').classList.toggle('active', src === 'server');
+      document.getElementById('btn-local').classList.toggle('active', src === 'local');
+      document.getElementById('search-input').value = '';
+      if (src === 'server') await loadServer();
+      else await loadLocal();
+    }
+
+    function renderAll() {
+      filtered = applyFilter(allRecords);
+      updateStats();
+      renderMarkers();
+      renderList();
+    }
+
+    function applyFilter(records) {
+      const q = document.getElementById('search-input').value.trim().toLowerCase();
+      if (!q) return records;
+      return records.filter(r =>
+        (r.name || '').toLowerCase().includes(q) ||
+        (r.sector || '').toLowerCase().includes(q)
+      );
+    }
+
+    function filterList() {
+      filtered = applyFilter(allRecords);
+      renderMarkers();
+      renderList();
+    }
+
+    function updateStats() {
+      const withGeo = allRecords.filter(r => r.latitude && r.longitude);
+      const sectors = new Set(allRecords.map(r => r.sector).filter(Boolean));
+      document.getElementById('s-total').textContent = allRecords.length;
+      document.getElementById('s-geo').textContent = withGeo.length;
+      document.getElementById('s-nogeo').textContent = allRecords.length - withGeo.length;
+      document.getElementById('s-sectors').textContent = sectors.size;
+    }
+
+    function renderMarkers() {
+      markerGroup.clearLayers();
+      markers = [];
+
+      const geoRecords = filtered.filter(r => r.latitude && r.longitude);
+
+      geoRecords.forEach((r, i) => {
+        const marker = L.marker([r.latitude, r.longitude], { icon: iconDefault })
+          .bindPopup(buildPopupSkeleton(r), { maxWidth: 260 });
+
+        marker.on('click', () => activateItem(i));
+        marker.on('popupopen', () => loadPopupPhoto(r, marker));
+        markerGroup.addLayer(marker);
+        markers.push(marker);
+      });
+
+      if (geoRecords.length > 0) {
+        try { map.fitBounds(markerGroup.getBounds().pad(0.25)); } catch (e) { }
+      } else {
+        map.setView([18.7357, -70.1627], 8);
+      }
+    }
+
+    function buildPopupSkeleton(r) {
+      const edu = EDU[r.educationalLevel] || r.educationalLevel || '—';
+      const date = r.createdAt ? new Date(r.createdAt).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+      const photoSlot = r.hasPhoto
+        ? `<div class="popup-no-photo" id="photo-slot-${escAttr(r.id)}">Cargando foto…</div>`
+        : `<div class="popup-no-photo">Sin foto</div>`;
+      return `
       <div class="popup-name">${escHtml(r.name || 'Sin nombre')}</div>
       <div class="popup-sector">${escHtml(r.sector || '—')}</div>
       <div class="popup-row"><span class="popup-label">Nivel escolar</span><span class="popup-value">${edu}</span></div>
@@ -469,44 +619,41 @@
       <div class="popup-row"><span class="popup-label">Coordenadas</span><span class="popup-value">${r.latitude.toFixed(5)}, ${r.longitude.toFixed(5)}</span></div>
       ${photoSlot}
     `;
-  }
-
-  /** Carga la foto en background via getById solo cuando el popup se abre */
-  async function loadPopupPhoto(r, marker) {
-    if (!r.hasPhoto || !r.id || dataSource !== 'server') return;
-    const slot = document.getElementById('photo-slot-' + r.id);
-    if (!slot) return;
-    const res = await API.surveys.getById(r.id);
-    if (!res.ok || !res.data?.form?.photoBase64) { if (slot) slot.textContent = 'Sin foto'; return; }
-    const src = res.data.form.photoBase64;
-    const img = document.createElement('img');
-    img.className = 'popup-photo';
-    img.src = src.startsWith('data:') ? src : 'data:image/jpeg;base64,' + src;
-    img.alt = 'Foto';
-    slot.replaceWith(img);
-    marker.update();
-  }
-
-  /* ── List ─────────────────────────────────────── */
-  function renderList() {
-    const container = document.getElementById('sidebar-list');
-    document.getElementById('list-count').textContent = filtered.length;
-
-    if (!filtered.length) {
-      container.innerHTML = `<div class="sidebar-empty"><div class="sidebar-empty-icon">🔍</div>${allRecords.length ? 'Sin resultados para esta búsqueda' : 'No hay registros disponibles'}</div>`;
-      return;
     }
 
-    // geoRecords first (same order as markers array), then no-geo
-    const geoRecs   = filtered.filter(r => r.latitude && r.longitude);
-    const noGeoRecs = filtered.filter(r => !r.latitude || !r.longitude);
-    const ordered   = [...geoRecs, ...noGeoRecs];
+    async function loadPopupPhoto(r, marker) {
+      if (!r.hasPhoto || !r.id || dataSource !== 'server') return;
+      const slot = document.getElementById('photo-slot-' + r.id);
+      if (!slot) return;
+      const res = await API.surveys.getById(r.id);
+      if (!res.ok || !res.data?.form?.photoBase64) { if (slot) slot.textContent = 'Sin foto'; return; }
+      const src = res.data.form.photoBase64;
+      const img = document.createElement('img');
+      img.className = 'popup-photo';
+      img.src = src.startsWith('data:') ? src : 'data:image/jpeg;base64,' + src;
+      img.alt = 'Foto';
+      slot.replaceWith(img);
+      marker.update();
+    }
 
-    container.innerHTML = ordered.map((r, i) => {
-      const initials = (r.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
-      const hasGeo   = r.latitude && r.longitude;
-      const geoIdx   = geoRecs.indexOf(r); // index within geo records = marker index
-      return `<div class="sidebar-item ${geoIdx === activeIdx && hasGeo ? 'active' : ''}"
+    function renderList() {
+      const container = document.getElementById('sidebar-list');
+      document.getElementById('list-count').textContent = filtered.length;
+
+      if (!filtered.length) {
+        container.innerHTML = `<div class="sidebar-empty"><div class="sidebar-empty-icon">—</div>${allRecords.length ? 'Sin resultados para esta búsqueda' : 'No hay registros disponibles'}</div>`;
+        return;
+      }
+
+      const geoRecs = filtered.filter(r => r.latitude && r.longitude);
+      const noGeoRecs = filtered.filter(r => !r.latitude || !r.longitude);
+      const ordered = [...geoRecs, ...noGeoRecs];
+
+      container.innerHTML = ordered.map((r, i) => {
+        const initials = (r.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        const hasGeo = r.latitude && r.longitude;
+        const geoIdx = geoRecs.indexOf(r);
+        return `<div class="sidebar-item ${geoIdx === activeIdx && hasGeo ? 'active' : ''}"
                    onclick="activateItem(${hasGeo ? geoIdx : -1}, '${escAttr(r.id || r.name)}')" >
         <div class="item-row">
           <div class="item-avatar ${hasGeo ? '' : 'no-geo'}">${initials}</div>
@@ -517,38 +664,35 @@
           </div>
         </div>
       </div>`;
-    }).join('');
-  }
-
-  /* ── Activate (click sidebar item or marker) ──── */
-  function activateItem(markerIdx, recordKey) {
-    // Reset previous active marker icon
-    if (activeIdx >= 0 && markers[activeIdx]) {
-      markers[activeIdx].setIcon(iconDefault);
+      }).join('');
     }
 
-    activeIdx = markerIdx;
+    function activateItem(markerIdx, recordKey) {
+      if (activeIdx >= 0 && markers[activeIdx]) {
+        markers[activeIdx].setIcon(iconDefault);
+      }
 
-    if (markerIdx >= 0 && markers[markerIdx]) {
-      markers[markerIdx].setIcon(iconActive);
-      map.setView(markers[markerIdx].getLatLng(), Math.max(map.getZoom(), 14), { animate: true });
-      markers[markerIdx].openPopup();
+      activeIdx = markerIdx;
+
+      if (markerIdx >= 0 && markers[markerIdx]) {
+        markers[markerIdx].setIcon(iconActive);
+        map.setView(markers[markerIdx].getLatLng(), Math.max(map.getZoom(), 14), { animate: true });
+        markers[markerIdx].openPopup();
+      }
+
+      renderList();
     }
 
-    renderList(); // refresh active highlight in sidebar
-  }
+    function escHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function escAttr(s) {
+      return String(s || '').replace(/'/g, "\\'");
+    }
 
-  /* ── Helpers ──────────────────────────────────── */
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-  function escAttr(s) {
-    return String(s || '').replace(/'/g,"\\'");
-  }
-
-  /* ── Boot ─────────────────────────────────────── */
-  initMap();
-  setSource('server');
-</script>
+    initMap();
+    setSource(navigator.onLine ? 'server' : 'local');
+  </script>
 </body>
+
 </html>

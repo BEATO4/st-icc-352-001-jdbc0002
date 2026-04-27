@@ -12,9 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Controller for survey form CRUD endpoints
- */
 public class SurveyFormController {
     private static final Logger logger = LoggerFactory.getLogger(SurveyFormController.class);
     private final SurveyFormService surveyFormService;
@@ -27,10 +24,6 @@ public class SurveyFormController {
         this(new SurveyFormService());
     }
 
-    /**
-     * POST /api/surveys
-     * Create a new survey form (authenticated users only)
-     */
     public void create(Context ctx) {
         try {
             String userId   = ctx.attribute("userId");
@@ -41,7 +34,7 @@ public class SurveyFormController {
             if (!surveyFormService.isValidEducationalLevel(request.getEducationalLevel())) {
                 ctx.status(400).json(Map.of(
                         "success", false,
-                        "message", "Invalid educational level. Must be one of: PRIMARY, SECONDARY, UNIVERSITY_DEGREE, POSTGRADUATE, DOCTORAL"
+                        "message", "Nivel educativo inválido. Debe ser uno de: BASICO, MEDIO, GRADO_UNIVERSITARIO, POSTGRADO, DOCTORADO"
                 ));
                 return;
             }
@@ -72,20 +65,11 @@ public class SurveyFormController {
         }
     }
 
-    /**
-     * GET /api/surveys
-     * Get all forms (ADMIN) or only the authenticated user's forms (USER)
-     */
+
     public void getAll(Context ctx) {
         try {
-            List<SurveyForm> forms;
-
-            if (JwtAuthFilter.isAdmin(ctx)) {
-                forms = surveyFormService.getAllForms();
-            } else {
-                String userId = ctx.attribute("userId");
-                forms = surveyFormService.getFormsByUserId(userId);
-            }
+            // Para pruebas y sincronización con gRPC, mostrar TODOS los formularios
+            List<SurveyForm> forms = surveyFormService.getAllForms();
 
             ctx.json(Map.of(
                     "success", true,
@@ -98,10 +82,6 @@ public class SurveyFormController {
         }
     }
 
-    /**
-     * GET /api/surveys/{id}
-     * Get a survey form by ID
-     */
     public void getById(Context ctx) {
         try {
             String id = ctx.pathParam("id");
@@ -114,7 +94,6 @@ public class SurveyFormController {
 
             SurveyForm form = formOpt.get();
 
-            // Non-admin users may only view their own forms
             if (!JwtAuthFilter.isAdmin(ctx)) {
                 String userId = ctx.attribute("userId");
                 if (!form.getUserId().equals(userId)) {
@@ -130,10 +109,6 @@ public class SurveyFormController {
         }
     }
 
-    /**
-     * GET /api/surveys/user/{userId}
-     * Get all forms belonging to a specific user (ADMIN or same user)
-     */
     public void getByUserId(Context ctx) {
         try {
             String targetUserId = ctx.pathParam("userId");
@@ -158,10 +133,6 @@ public class SurveyFormController {
         }
     }
 
-    /**
-     * GET /api/surveys/location
-     * Get all forms that include geolocation data (ADMIN only)
-     */
     public void getWithLocation(Context ctx) {
         try {
             JwtAuthFilter.requireAdmin(ctx);
@@ -179,10 +150,6 @@ public class SurveyFormController {
         }
     }
 
-    /**
-     * PUT /api/surveys/{id}
-     * Update an existing survey form
-     */
     public void update(Context ctx) {
         try {
             String id = ctx.pathParam("id");
@@ -195,7 +162,6 @@ public class SurveyFormController {
 
             SurveyForm form = formOpt.get();
 
-            // Non-admin users may only edit their own forms
             if (!JwtAuthFilter.isAdmin(ctx)) {
                 String userId = ctx.attribute("userId");
                 if (!form.getUserId().equals(userId)) {
@@ -214,7 +180,7 @@ public class SurveyFormController {
                 if (!surveyFormService.isValidEducationalLevel(request.getEducationalLevel())) {
                     ctx.status(400).json(Map.of(
                             "success", false,
-                            "message", "Invalid educational level. Must be one of: PRIMARY, SECONDARY, UNIVERSITY_DEGREE, POSTGRADUATE, DOCTORAL"
+                            "message", "Nivel educativo inválido. Debe ser uno de: BASICO, MEDIO, GRADO_UNIVERSITARIO, POSTGRADO, DOCTORADO"
                     ));
                     return;
                 }
@@ -237,10 +203,6 @@ public class SurveyFormController {
         }
     }
 
-    /**
-     * DELETE /api/surveys/{id}
-     * Delete a survey form
-     */
     public void delete(Context ctx) {
         try {
             String id = ctx.pathParam("id");
@@ -251,7 +213,6 @@ public class SurveyFormController {
                 return;
             }
 
-            // Non-admin users may only delete their own forms
             if (!JwtAuthFilter.isAdmin(ctx)) {
                 String userId = ctx.attribute("userId");
                 if (!formOpt.get().getUserId().equals(userId)) {
@@ -273,12 +234,6 @@ public class SurveyFormController {
         }
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────
-
-    /**
-     * Convert a SurveyForm to a plain Map for JSON serialisation
-     * (avoids exposing internal ObjectId types directly)
-     */
     private Map<String, Object> toMap(SurveyForm f) {
         return Map.ofEntries(
                 Map.entry("id",               f.getIdAsString() != null ? f.getIdAsString() : ""),
@@ -296,7 +251,6 @@ public class SurveyFormController {
         );
     }
 
-    /** Same as toMap but omits photoBase64 — used in list endpoints to avoid huge payloads. */
     private Map<String, Object> toMapSummary(SurveyForm f) {
         return Map.ofEntries(
                 Map.entry("id",               f.getIdAsString() != null ? f.getIdAsString() : ""),

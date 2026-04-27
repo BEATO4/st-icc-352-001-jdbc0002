@@ -15,9 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repository class for User database operations
- */
 public class UserRepository {
     private static final Logger logger = LoggerFactory.getLogger(UserRepository.class);
     private final MongoCollection<User> collection;
@@ -31,11 +28,7 @@ public class UserRepository {
         this(MongoDBConnection.getInstance().getDatabase());
     }
 
-    /**
-     * Create indexes for the users collection
-     */
     private void createIndexes() {
-        // Create unique index on username
         collection.createIndex(
                 Indexes.ascending("username"),
                 new IndexOptions().unique(true)
@@ -43,9 +36,6 @@ public class UserRepository {
         logger.info("Created unique index on username field");
     }
 
-    /**
-     * Create a new user
-     */
     public User create(User user) {
         try {
             collection.insertOne(user);
@@ -57,9 +47,6 @@ public class UserRepository {
         }
     }
 
-    /**
-     * Find user by ID
-     */
     public Optional<User> findById(ObjectId id) {
         try {
             User user = collection.find(Filters.eq("_id", id)).first();
@@ -70,9 +57,6 @@ public class UserRepository {
         }
     }
 
-    /**
-     * Find user by ID string
-     */
     public Optional<User> findById(String id) {
         try {
             return findById(new ObjectId(id));
@@ -82,9 +66,7 @@ public class UserRepository {
         }
     }
 
-    /**
-     * Find user by username
-     */
+
     public Optional<User> findByUsername(String username) {
         try {
             User user = collection.find(Filters.eq("username", username)).first();
@@ -95,9 +77,7 @@ public class UserRepository {
         }
     }
 
-    /**
-     * Find all users
-     */
+
     public List<User> findAll() {
         try {
             return collection.find().into(new ArrayList<>());
@@ -107,9 +87,6 @@ public class UserRepository {
         }
     }
 
-    /**
-     * Update a user
-     */
     public boolean update(User user) {
         try {
             return collection.replaceOne(
@@ -122,9 +99,6 @@ public class UserRepository {
         }
     }
 
-    /**
-     * Delete a user by ID
-     */
     public boolean delete(ObjectId id) {
         try {
             return collection.deleteOne(Filters.eq("_id", id)).getDeletedCount() > 0;
@@ -134,9 +108,6 @@ public class UserRepository {
         }
     }
 
-    /**
-     * Delete a user by ID string
-     */
     public boolean delete(String id) {
         try {
             return delete(new ObjectId(id));
@@ -146,16 +117,10 @@ public class UserRepository {
         }
     }
 
-    /**
-     * Check if username exists
-     */
     public boolean existsByUsername(String username) {
         return collection.countDocuments(Filters.eq("username", username)) > 0;
     }
 
-    /**
-     * Count total users
-     */
     public long count() {
         return collection.countDocuments();
     }

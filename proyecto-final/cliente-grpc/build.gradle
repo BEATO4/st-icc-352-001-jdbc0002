@@ -1,36 +1,65 @@
 plugins {
     id 'java'
+    id 'application'
+    id 'com.google.protobuf' version '0.9.5'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
 }
-
-group = 'edu.pucmm.icc352'
-version = '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
+    google()
+}
+
+javafx {
+    version = '21'
+    modules = ['javafx.controls', 'javafx.fxml']
+}
+
+application {
+    mainClass = 'edu.pucmm.icc352.MainApp'
+}
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.25.8'
+    }
+    plugins {
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.80.0'
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins {
+                grpc {}
+            }
+        }
+    }
+}
+
+// NO redefinir sourceSets manualmente — el plugin protobuf lo hace automático
+// Solo agrega src/main/java si no lo toma solo
+sourceSets {
+    main {
+        proto.srcDirs = ['src/main/proto']
+    }
+}
+
+tasks.named('compileJava').configure {
+    dependsOn 'generateProto'
 }
 
 dependencies {
-    // ── gRPC ──────────────────────────────────────────────────────
-    implementation "io.grpc:grpc-netty-shaded:1.80.0"
-    implementation "io.grpc:grpc-protobuf:1.80.0"
-    implementation "io.grpc:grpc-stub:1.80.0"
-    compileOnly    "org.apache.tomcat:annotations-api:6.0.53"
+    // gRPC
+    implementation 'io.grpc:grpc-netty-shaded:1.80.0'
+    implementation 'io.grpc:grpc-protobuf:1.80.0'
+    implementation 'io.grpc:grpc-stub:1.80.0'
 
-    // ── Protobuf ──────────────────────────────────────────────────
-    implementation "com.google.protobuf:protobuf-java:4.34.1"
+    // Requerido por el código generado de protobuf
+    implementation 'javax.annotation:javax.annotation-api:1.3.2'
+    implementation 'com.google.protobuf:protobuf-java:4.34.1'
 
-    // ── JSON ──────────────────────────────────────────────────────
-    implementation "com.fasterxml.jackson.core:jackson-databind:2.19.0"
-
-    // ── Logging ───────────────────────────────────────────────────
-    implementation "org.slf4j:slf4j-simple:2.0.17"
-
-    // ── Testing ───────────────────────────────────────────────────
-    testImplementation platform('org.junit:junit-bom:5.10.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
-
-test {
-    useJUnitPlatform()
+    // SLF4J — FALTABA
+    implementation 'org.slf4j:slf4j-api:2.0.13'
+    implementation 'org.slf4j:slf4j-simple:2.0.13'
 }

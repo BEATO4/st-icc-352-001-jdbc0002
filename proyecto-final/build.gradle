@@ -86,12 +86,6 @@ test {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'edu.pucmm.icc352.Main'
-    }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from {
-        configurations.runtimeClasspath.collect {
-            it.isDirectory() ? it : zipTree(it)
-        }
+        attributes 'Main-Class': 'edu.pucmm.icc352.backend.Main'
     }
 }

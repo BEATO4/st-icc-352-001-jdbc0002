@@ -8,9 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Service for user management operations
- */
+
 public class UserService {
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepository;
@@ -23,30 +21,18 @@ public class UserService {
         this(new UserRepository());
     }
 
-    /**
-     * Get user by ID
-     */
     public Optional<User> getUserById(String id) {
         return userRepository.findById(id);
     }
 
-    /**
-     * Get user by username
-     */
     public Optional<User> getUserByUsername(String username) {
         return userRepository.findByUsername(username);
     }
 
-    /**
-     * Get all users
-     */
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    /**
-     * Update user
-     */
     public boolean updateUser(User user) {
         try {
             return userRepository.update(user);
@@ -56,9 +42,6 @@ public class UserService {
         }
     }
 
-    /**
-     * Delete user
-     */
     public boolean deleteUser(String id) {
         try {
             return userRepository.delete(id);
@@ -68,16 +51,11 @@ public class UserService {
         }
     }
 
-    /**
-     * Check if username exists
-     */
+
     public boolean usernameExists(String username) {
         return userRepository.existsByUsername(username);
     }
 
-    /**
-     * Get total user count
-     */
     public long getUserCount() {
         return userRepository.count();
     }

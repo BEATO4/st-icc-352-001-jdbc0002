@@ -8,9 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Service for survey form operations
- */
+
 public class SurveyFormService {
     private static final Logger logger = LoggerFactory.getLogger(SurveyFormService.class);
     private final SurveyFormRepository formRepository;
@@ -23,23 +21,19 @@ public class SurveyFormService {
         this(new SurveyFormRepository());
     }
 
-    /**
-     * Create a new survey form
-     */
     public SurveyForm createForm(SurveyForm form) {
         try {
-            // Validate required fields
             if (form.getName() == null || form.getName().trim().isEmpty()) {
-                throw new IllegalArgumentException("Name is required");
+                throw new IllegalArgumentException("Nombre es requerido");
             }
             if (form.getSector() == null || form.getSector().trim().isEmpty()) {
-                throw new IllegalArgumentException("Sector is required");
+                throw new IllegalArgumentException("Sector es requerido");
             }
             if (form.getEducationalLevel() == null || form.getEducationalLevel().trim().isEmpty()) {
-                throw new IllegalArgumentException("Educational level is required");
+                throw new IllegalArgumentException("Nivel educativo es requerido");
             }
             if (form.getUserId() == null || form.getUserId().trim().isEmpty()) {
-                throw new IllegalArgumentException("User ID is required");
+                throw new IllegalArgumentException("User ID es requerido");
             }
 
             return formRepository.create(form);
@@ -49,44 +43,31 @@ public class SurveyFormService {
         }
     }
 
-    /**
-     * Get survey form by ID
-     */
+
     public Optional<SurveyForm> getFormById(String id) {
         return formRepository.findById(id);
     }
 
-    /**
-     * Get all survey forms
-     */
+
     public List<SurveyForm> getAllForms() {
         return formRepository.findAll();
     }
 
-    /**
-     * Get all survey forms by user ID
-     */
+
     public List<SurveyForm> getFormsByUserId(String userId) {
         return formRepository.findByUserId(userId);
     }
 
-    /**
-     * Get all survey forms by username
-     */
+
     public List<SurveyForm> getFormsByUsername(String username) {
         return formRepository.findByUsername(username);
     }
 
-    /**
-     * Get all forms with geolocation data
-     */
     public List<SurveyForm> getFormsWithLocation() {
         return formRepository.findAllWithLocation();
     }
 
-    /**
-     * Update survey form
-     */
+
     public boolean updateForm(SurveyForm form) {
         try {
             return formRepository.update(form);
@@ -96,9 +77,7 @@ public class SurveyFormService {
         }
     }
 
-    /**
-     * Delete survey form
-     */
+
     public boolean deleteForm(String id) {
         try {
             return formRepository.delete(id);
@@ -108,30 +87,24 @@ public class SurveyFormService {
         }
     }
 
-    /**
-     * Get total form count
-     */
+
     public long getFormCount() {
         return formRepository.count();
     }
 
-    /**
-     * Get form count by user ID
-     */
+
     public long getFormCountByUserId(String userId) {
         return formRepository.countByUserId(userId);
     }
 
-    /**
-     * Validate educational level
-     */
+
     public boolean isValidEducationalLevel(String level) {
-        return level != null && (
-                level.equalsIgnoreCase("PRIMARY") ||
-                level.equalsIgnoreCase("SECONDARY") ||
-                level.equalsIgnoreCase("UNIVERSITY_DEGREE") ||
-                level.equalsIgnoreCase("POSTGRADUATE") ||
-                level.equalsIgnoreCase("DOCTORAL")
-        );
+        if (level == null)
+            return false;
+        String value = level.trim().toUpperCase();
+        return switch (value) {
+            case "BASICO", "MEDIO", "GRADO_UNIVERSITARIO", "POSTGRADO", "DOCTORADO" -> true;
+            default -> false;
+        };
     }
 }

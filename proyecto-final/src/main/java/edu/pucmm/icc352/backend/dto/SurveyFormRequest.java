@@ -2,9 +2,6 @@ package edu.pucmm.icc352.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-/**
- * DTO for survey form create/update request
- */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SurveyFormRequest {
     private String name;

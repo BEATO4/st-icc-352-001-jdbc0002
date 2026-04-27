@@ -8,15 +8,18 @@ import javafx.scene.layout.VBox;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 
-public class Main extends Application {
+/**
+ * Pantalla de conexión inicial a gRPC
+ */
+public class MainApp extends Application {
 
-    private RestClient restClient;
+    private GrpcClient grpcClient;
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("Cliente REST - Encuestas");
+        primaryStage.setTitle("Cliente gRPC - Encuestas");
 
-        Label titleLabel = new Label("Conectar a Servidor REST");
+        Label titleLabel = new Label("Conectar a Servidor gRPC");
         titleLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
         Label hostLabel = new Label("Host:");
@@ -24,7 +27,7 @@ public class Main extends Application {
         hostField.setPrefWidth(300);
 
         Label portLabel = new Label("Puerto:");
-        TextField portField = new TextField("443");
+        TextField portField = new TextField("9090");
         portField.setPrefWidth(300);
 
         Button connectButton = new Button("Conectar");
@@ -34,6 +37,7 @@ public class Main extends Application {
         Label statusLabel = new Label("");
         statusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #666666;");
 
+        // Layout
         VBox formVBox = new VBox(10);
         formVBox.setPadding(new Insets(20));
         formVBox.setStyle("-fx-border-color: #e0e0e0; -fx-border-radius: 5; -fx-background-color: #f9f9f9;");
@@ -59,7 +63,7 @@ public class Main extends Application {
                 int port = Integer.parseInt(portField.getText().trim());
 
                 if (host.isEmpty()) {
-                    statusLabel.setText("ERROR - Host no puede estar vacio");
+                    statusLabel.setText("[ERROR] Host no puede estar vacío");
                     statusLabel.setStyle("-fx-text-fill: red;");
                     return;
                 }
@@ -67,17 +71,20 @@ public class Main extends Application {
                 statusLabel.setText("Conectando...");
                 statusLabel.setStyle("-fx-text-fill: #ff9800;");
 
-                restClient = new RestClient(host, port);
-                statusLabel.setText("OK - Conectado exitosamente");
-                statusLabel.setStyle("-fx-text-fill: green;");
+                grpcClient = new GrpcClient(host, port);
 
-                openLoginView(primaryStage);
+                if (grpcClient.isConnected()) {
+                    statusLabel.setText("[OK] Conectado exitosamente");
+                    statusLabel.setStyle("-fx-text-fill: green;");
+
+                    openFormularioView(primaryStage);
+                }
 
             } catch (NumberFormatException ex) {
-                statusLabel.setText("ERROR - Puerto debe ser un numero valido");
+                statusLabel.setText("[ERROR] Puerto debe ser un número válido");
                 statusLabel.setStyle("-fx-text-fill: red;");
             } catch (Exception ex) {
-                statusLabel.setText("ERROR - " + ex.getMessage());
+                statusLabel.setText("[ERROR] Error: " + ex.getMessage());
                 statusLabel.setStyle("-fx-text-fill: red;");
             }
         });
@@ -86,13 +93,17 @@ public class Main extends Application {
         primaryStage.show();
     }
 
-    private void openLoginView(Stage primaryStage) {
-        LoginView loginView = new LoginView(restClient);
-        Scene scene = loginView.createScene(primaryStage);
+    private void openFormularioView(Stage primaryStage) {
+        FormularioView formularioView = new FormularioView(grpcClient);
+        Scene scene = formularioView.createScene();
         primaryStage.setScene(scene);
+        primaryStage.setWidth(900);
+        primaryStage.setHeight(700);
+        primaryStage.setTitle("Gestor de Encuestas - gRPC");
     }
 
     public static void main(String[] args) {
         launch(args);
     }
 }
+

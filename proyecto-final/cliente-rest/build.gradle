@@ -1,5 +1,7 @@
 plugins {
     id 'java'
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
 }
 
 group = 'edu.pucmm.icc352'
@@ -9,15 +11,30 @@ repositories {
     mavenCentral()
 }
 
+javafx {
+    version = '21'
+    modules = ['javafx.controls', 'javafx.fxml']
+}
+
+application {
+    mainClass = 'edu.pucmm.icc352.Main'
+}
+
 dependencies {
-    // ── Servidor web ──────────────────────────────────────────────
-    implementation "io.javalin:javalin-bundle:7.0.1"
+    // ── JavaFX ────────────────────────────────────────────────────
+    implementation 'org.openjfx:javafx-controls:21'
+    implementation 'org.openjfx:javafx-fxml:21'
+
+    // ── HTTP Client ───────────────────────────────────────────────
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+    implementation 'org.apache.httpcomponents.core5:httpcore5:5.2'
 
     // ── JSON ──────────────────────────────────────────────────────
     implementation "com.fasterxml.jackson.core:jackson-databind:2.19.0"
 
     // ── Logging ───────────────────────────────────────────────────
-    implementation "org.slf4j:slf4j-simple:2.0.17"
+    implementation "org.slf4j:slf4j-api:2.0.13"
+    implementation "org.slf4j:slf4j-simple:2.0.13"
 
     // ── Testing ───────────────────────────────────────────────────
     testImplementation platform('org.junit:junit-bom:5.10.0')

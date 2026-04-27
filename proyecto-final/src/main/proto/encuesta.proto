@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package edu.pucmm.icc352.grpc;
+
+option java_multiple_files = true;
+option java_package = "edu.pucmm.icc352.grpc";
+option java_outer_classname = "EncuestaProto";
+
+service EncuestaService {
+  rpc ListarFormularios(ListarRequest) returns (ListarResponse);
+  rpc CrearFormulario(CrearFormularioRequest) returns (CrearFormularioResponse);
+  rpc ListarTodos(ListarTodosRequest) returns (ListarResponse);
+  rpc ActualizarFormulario(ActualizarFormularioRequest) returns (ActualizarFormularioResponse);
+  rpc EliminarFormulario(EliminarFormularioRequest) returns (EliminarFormularioResponse);
+}
+
+message ListarRequest {
+  string usuario_id = 1;
+}
+
+message ListarTodosRequest {
+}
+
+message FormularioMessage {
+  string id = 1;
+  string name = 2;
+  string sector = 3;
+  string educational_level = 4;
+  double latitude = 5;
+  double longitude = 6;
+  string photo_base64 = 7;
+  string user_id = 8;
+  string username = 9;
+  bool synced = 10;
+  string created_at = 11;
+  string updated_at = 12;
+}
+
+message ListarResponse {
+  repeated FormularioMessage formularios = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message CrearFormularioRequest {
+  string name = 1;
+  string sector = 2;
+  string educational_level = 3;
+  double latitude = 4;
+  double longitude = 5;
+  string photo_base64 = 6;
+  string user_id = 7;
+  string username = 8;
+}
+
+message CrearFormularioResponse {
+  bool success = 1;
+  string message = 2;
+  string id = 3;
+}
+
+message ActualizarFormularioRequest {
+  string id = 1;
+  string name = 2;
+  string sector = 3;
+  string educational_level = 4;
+  double latitude = 5;
+  double longitude = 6;
+  string photo_base64 = 7;
+}
+
+message ActualizarFormularioResponse {
+  bool success = 1;
+  string message = 2;
+  FormularioMessage formulario = 3;
+}
+
+message EliminarFormularioRequest {
+  string id = 1;
+}
+
+message EliminarFormularioResponse {
+  bool success = 1;
+  string message = 2;
+}

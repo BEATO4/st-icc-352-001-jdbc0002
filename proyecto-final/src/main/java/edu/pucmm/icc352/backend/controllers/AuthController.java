@@ -9,9 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-/**
- * Controller for authentication endpoints
- */
 public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     private final AuthService authService;
@@ -24,9 +21,6 @@ public class AuthController {
         this(new AuthService());
     }
 
-    /**
-     * POST /api/auth/register
-     */
     public void register(Context ctx) {
         try {
             RegisterRequest request = ctx.bodyAsClass(RegisterRequest.class);
@@ -50,9 +44,6 @@ public class AuthController {
         }
     }
 
-    /**
-     * POST /api/auth/login
-     */
     public void login(Context ctx) {
         try {
             LoginRequest request = ctx.bodyAsClass(LoginRequest.class);
@@ -75,9 +66,6 @@ public class AuthController {
         }
     }
 
-    /**
-     * GET /api/auth/validate
-     */
     public void validateToken(Context ctx) {
         try {
             String authHeader = ctx.header("Authorization");
@@ -106,9 +94,7 @@ public class AuthController {
         }
     }
 
-    /**
-     * GET /api/auth/me - Get current user info
-     */
+
     public void getCurrentUser(Context ctx) {
         try {
             String userId = ctx.attribute("userId");
